@@ -695,6 +695,11 @@ static inline void ehci_writel(const struct ehci_hcd *ehci,
 	ehci_big_endian_mmio(ehci) ?
 		writel_be(val, regs) :
 		writel(val, regs);
+#elif defined(CONFIG_SOC_IMX28)
+	if (ehci->imx28_write_fix)
+		imx28_ehci_writel(val, regs);
+	else
+		writel(val, regs);
 #else
 	if (ehci->imx28_write_fix)
 		imx28_ehci_writel(val, regs);
