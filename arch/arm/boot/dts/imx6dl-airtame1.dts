@@ -1,0 +1,234 @@
+/*
+ * Copyright 2014 Emil Renner Berthing, AIRTAME
+ *
+ * The code contained herein is licensed under the GNU General Public
+ * License. You may obtain a copy of the GNU General Public License
+ * Version 2 or later at the following locations:
+ *
+ * http://www.opensource.org/licenses/gpl-license.html
+ * http://www.gnu.org/copyleft/gpl.html
+ */
+/dts-v1/;
+
+#include <dt-bindings/interrupt-controller/irq.h>
+#include "imx6dl.dtsi"
+
+/ {
+	model = "AIRTAME Dongle 1";
+	compatible = "airtame,imx6dl-airtame1", "fsl,imx6dl";
+
+	aliases {
+		mxcfb0 = &mxcfb1;
+	};
+
+	chosen {
+		linux,stdout-path = &uart1;
+	};
+
+	memory {
+		reg = <0x10000000 0x40000000>;
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+		power {
+			label = "Power Button";
+			gpios = <&gpio7 12 1>;
+			linux,code = <116>; /* KEY_POWER */
+			gpio-key,wakeup;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led {
+			gpios = <&gpio1 9 0>;
+			linux,default-trigger = "heartbeat";
+			default-state = "on";
+		};
+	};
+
+	regulators {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		reg_usb_h1_vbus: usb_h1_vbus {
+			compatible = "regulator-fixed";
+			regulator-name = "usb_h1_vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			gpio = <&gpio3 31 0>;
+			enable-active-high;
+		};
+
+		reg_wlan1_3p3v: wlan1_3p3v {
+			compatible = "regulator-fixed";
+			regulator-name = "wlan1_3p3v";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			gpio = <&gpio2 22 0>;
+			enable-active-high;
+		};
+
+		reg_wlan2_3p3v: wlan2_3p3v {
+			compatible = "regulator-fixed";
+			regulator-name = "wlan2_3p3v";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			gpio = <&gpio2 21 0>;
+			enable-active-high;
+		};
+	};
+
+	mxcfb1: fb@0 {
+		compatible = "fsl,mxc_sdc_fb";
+		disp_dev = "hdmi";
+		interface_pix_fmt = "RGB24";
+		mode_str ="1920x1080M@60";
+		default_bpp = <24>;
+		int_clk = <0>;
+		late_init = <0>;
+		status = "okay";
+	};
+
+	sound-hdmi {
+		compatible = "fsl,imx6q-audio-hdmi",
+			     "fsl,imx-audio-hdmi";
+		model = "imx-audio-hdmi";
+		hdmi-controller = <&hdmi_audio>;
+	};
+
+	v4l2_cap_0 {
+		compatible = "fsl,imx6q-v4l2-capture";
+		ipu_id = <0>;
+		csi_id = <0>;
+		mclk_source = <0>;
+		status = "okay";
+	};
+
+	v4l2_out {
+		compatible = "fsl,mxc_v4l2_output";
+		status = "okay";
+	};
+};
+
+&hdmi_audio {
+	status = "okay";
+};
+
+&hdmi_cec {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hdmi_cec_2>;
+	status = "okay";
+};
+
+&hdmi_core {
+	ipu_id = <0>;
+	disp_id = <0>;
+	status = "okay";
+};
+
+&hdmi_video {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hdmi_hdcp_1>;
+	fsl,hdcp;
+	fsl,phy_reg_vlev = <0x0294>;
+	fsl,phy_reg_cksymtx = <0x800d>;
+	status = "okay";
+};
+
+&i2c3 {
+        clock-frequency = <100000>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&pinctrl_i2c3_airtame1>;
+        status = "okay";
+
+	hdmi: edid@50 {
+		compatible = "fsl,imx6-hdmi-i2c";
+		reg = <0x50>;
+	};
+};
+
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog_1>;
+
+	imx6dl-airtame1 {
+		pinctrl_hog_1: hoggrp-1 {
+			fsl,pins = <
+				MX6QDL_PAD_GPIO_0__CCM_CLKO1    0x130b0
+				MX6QDL_PAD_NANDF_CS2__CCM_CLKO2 0x130b0
+				/* USB host power enable */
+				MX6QDL_PAD_EIM_D31__GPIO3_IO31  0x100b1
+				/* USB host over-current detect */
+				MX6QDL_PAD_EIM_D30__GPIO3_IO30  0x10081
+				/* AR6003 5GHz power enable */
+				MX6QDL_PAD_EIM_A16__GPIO2_IO22  0x100b1
+				/* AR6003 2.4GHz power enable */
+				MX6QDL_PAD_EIM_A17__GPIO2_IO21  0x100b1
+				/* Power Button */
+				MX6QDL_PAD_GPIO_17__GPIO7_IO12  0x1b081
+				/* LED */
+				MX6QDL_PAD_GPIO_9__GPIO1_IO09   0x100b1
+			>;
+		};
+
+		pinctrl_i2c3_airtame1: i2c3grp-airtame1 {
+			fsl,pins = <
+				MX6QDL_PAD_GPIO_3__I2C3_SCL  0x4001b8b1
+				MX6QDL_PAD_GPIO_16__I2C3_SDA 0x4001b8b1
+			>;
+		};
+	};
+};
+
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart1_1>;
+	status = "okay";
+};
+
+&usbh1 {
+	phy_type = "utmi";
+	dr_mode = "host";
+	vbus-supply = <&reg_usb_h1_vbus>;
+	disable-over-current;
+	status = "okay";
+};
+
+&usbotg {
+#if 0
+	vbus-supply = <&reg_usb_otg_vbus>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usbotg_1>;
+	disable-over-current;
+#endif
+	imx6-usb-charger-detection;
+	dr_mode = "peripheral";
+	status = "okay";
+};
+
+&usdhc1 {  /* AR6003 5GHz */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc1_1>;
+	non-removable;
+	vmmc-supply = <&reg_wlan1_3p3v>;
+	status = "okay";
+};
+
+&usdhc2 {  /* AR6003 2.4GHz */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc2_2>;
+	non-removable;
+	vmmc-supply = <&reg_wlan2_3p3v>;
+	status = "okay";
+};
+
+&usdhc3 { /* microSD slot */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc3_2>;
+	no-1-8-v;
+	status = "okay";
+};
