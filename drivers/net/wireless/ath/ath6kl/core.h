@@ -56,11 +56,17 @@
 #define MAX_DEF_COOKIE_NUM                180
 #define MAX_HI_COOKIE_NUM                 18	/* 10% of MAX_COOKIE_NUM */
 #define MAX_COOKIE_NUM                 (MAX_DEF_COOKIE_NUM + MAX_HI_COOKIE_NUM)
+#define WMI_MAX_COOKIE_NUM                80
 
 #define MAX_DEFAULT_SEND_QUEUE_DEPTH      (MAX_DEF_COOKIE_NUM / WMM_NUM_AC)
 
 #define DISCON_TIMER_INTVAL               10000  /* in msec */
 
+#define MAX_APSD_DEPTH_FOR_EACH_CONN	  50	/*limit it to avoid exhausting system's memory*/
+#define MAX_PSQ_DEPTH_FOR_EACH_CONN       50 /*limit it to avoid exhausting system's memory*/
+
+/* Channel dwell time in fg scan */
+#define ATH6KL_FG_SCAN_INTERVAL         50 /* in ms */
 /* Channel dwell time in fg scan */
 #define ATH6KL_FG_SCAN_INTERVAL		50 /* in ms */
 
@@ -135,6 +141,25 @@ enum ath6kl_fw_capability {
 	 * challenge messages.
 	 */
 	ATH6KL_FW_CAPABILITY_HEART_BEAT_POLL,
+	/*
+	 * Firmware supports mac address based ACL with
+	 * white/black list
+	 */
+	ATH6KL_FW_CAPABILITY_MAC_ACL,
+
+	/*
+	* Firmware with capability regdomain-v2 can support
+	* set regdomain immediately. The firmware without this
+	* capability need start scan for new regdomain take effect
+	*/
+	ATH6KL_FW_CAPABILITY_REGDOMAIN_V2,
+
+	/*
+	 * Firmware capable to send more than 255 byte in IE
+	 * (assoc req ie, assoc resp ie, beacon ie) present in
+	 * connect event.
+	 */
+	ATH6KL_FW_CAPABILITY_LARGE_CONNECT_IE,
 
 	/* this needs to be last */
 	ATH6KL_FW_CAPABILITY_MAX,

@@ -1068,7 +1068,7 @@ struct wmi_power_mode_cmd {
 } __packed;
 
 /*
- * Policy to determnine whether power save failure event should be sent to
+ * Policy to determine whether power save failure event should be sent to
  * host during scanning
  */
 enum power_save_fail_event_policy {
@@ -1517,9 +1517,7 @@ enum wmi_phy_cap {
 	WMI_11AGN_CAP = 0x06,
 };
 
-/* Connect Event */
-struct wmi_connect_event {
-	union {
+union wmi_connect_common_info {
 		struct {
 			__le16 ch;
 			u8 bssid[ETH_ALEN];
@@ -1542,10 +1540,22 @@ struct wmi_connect_event {
 			u8 bssid[ETH_ALEN];
 			u8 unused[8];
 		} ap_bss;
-	} u;
+} __packed;
+
+/* Connect Event */
+struct wmi_connect_event {
+	union wmi_connect_common_info u;
 	u8 beacon_ie_len;
 	u8 assoc_req_len;
 	u8 assoc_resp_len;
+	u8 assoc_info[1];
+} __packed;
+/* Connect Event for large IE*/
+struct wmi_connect_event_advanced {
+	union wmi_connect_common_info u;
+	u16 beacon_ie_len;
+	u16 assoc_req_len;
+	u16 assoc_resp_len;
 	u8 assoc_info[1];
 } __packed;
 
@@ -1578,6 +1588,7 @@ enum ap_disconnect_reason {
 	WMI_AP_REASON_ACL		= 105,
 	WMI_AP_REASON_STA_ROAM		= 106,
 	WMI_AP_REASON_DFS_CHANNEL	= 107,
+	WMI_AP_REASON_NEW_STA		= 108,
 };
 
 #define ATH6KL_COUNTRY_RD_SHIFT        16
