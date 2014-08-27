@@ -969,6 +969,7 @@ int ath6kl_init_fetch_firmwares(struct ath6kl *ar);
 int ath6kl_init_hw_params(struct ath6kl *ar);
 
 void ath6kl_check_wow_status(struct ath6kl *ar);
+void ath6kl_mangle_mac_address(struct ath6kl *ar, u8 locally_administered_bit);
 
 void ath6kl_core_tx_complete(struct ath6kl *ar, struct sk_buff *skb);
 void ath6kl_core_rx_complete(struct ath6kl *ar, struct sk_buff *skb, u8 pipe);
