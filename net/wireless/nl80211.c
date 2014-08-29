@@ -10247,9 +10247,11 @@ void cfg80211_ch_switch_notify(struct net_device *dev,
 	struct wiphy *wiphy = wdev->wiphy;
 	struct cfg80211_registered_device *rdev = wiphy_to_dev(wiphy);
 
+	ASSERT_WDEV_LOCK(wdev);
+
 	trace_cfg80211_ch_switch_notify(dev, chandef);
 
-	wdev_lock(wdev);
+	//wdev_lock(wdev);
 
 	if (WARN_ON(wdev->iftype != NL80211_IFTYPE_AP &&
 		    wdev->iftype != NL80211_IFTYPE_P2P_GO))
@@ -10258,7 +10260,7 @@ void cfg80211_ch_switch_notify(struct net_device *dev,
 	wdev->channel = chandef->chan;
 	nl80211_ch_switch_notify(rdev, dev, chandef, GFP_KERNEL);
 out:
-	wdev_unlock(wdev);
+	//wdev_unlock(wdev);
 	return;
 }
 EXPORT_SYMBOL(cfg80211_ch_switch_notify);
