@@ -3570,6 +3570,9 @@ static void ath6kl_cfg80211_reg_notify(struct wiphy *wiphy,
 		return;
 	}
 
+	if (test_bit(ATH6KL_FW_CAPABILITY_REGDOMAIN_V2, ar->fw_capabilities))
+		return;
+
 	/*
 	 * Firmware will apply the regdomain change only after a scan is
 	 * issued and it will send a WMI_REGDOMAIN_EVENTID when it has been

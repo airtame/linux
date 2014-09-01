@@ -142,6 +142,13 @@ enum ath6kl_fw_capability {
 	 */
 	ATH6KL_FW_CAPABILITY_MAC_ACL,
 
+	/*
+	* Firmware with capability regdomain-v2 can support
+	* set regdomain immediately. The firmware without this
+	* capability need start scan for new regdomain take effect
+	*/
+	ATH6KL_FW_CAPABILITY_REGDOMAIN_V2,
+
 	/* this needs to be last */
 	ATH6KL_FW_CAPABILITY_MAX,
 };
