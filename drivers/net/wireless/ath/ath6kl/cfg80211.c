@@ -3347,6 +3347,52 @@ static int ath6kl_cfg80211_set_bitrate(struct wiphy *wiphy,
 					   mask);
 }
 
+static int ath6kl_set_mac_acl(struct wiphy *wiphy,
+			      struct net_device *dev,
+			      const struct cfg80211_acl_data *params)
+{
+	struct ath6kl *ar = ath6kl_priv(dev);
+	struct ath6kl_vif *vif = netdev_priv(dev);
+	int i, err;
+	static const u8 zero_mac[ETH_ALEN] = { 0 };
+
+	/* Set the policy */
+	err = ath6kl_wmi_set_acl_policy(ar->wmi, vif->fw_vif_idx,
+			params->n_acl_entries > 0);
+	if (err < 0)
+		return err;
+
+	if (params->n_acl_entries == 0)
+		return 0;
+
+	/* Reset the acl list */
+	err = ath6kl_wmi_set_acl_list(ar->wmi, vif->fw_vif_idx, 0, zero_mac,
+				      params->acl_policy, true);
+	if (err)
+		return err;
+
+	for (i = 0; i < params->n_acl_entries; i++) {
+		err = ath6kl_wmi_set_acl_list(ar->wmi, vif->fw_vif_idx, i,
+					      params->mac_addrs[i].addr,
+					      params->acl_policy, false);
+		if (err)
+			return err;
+	}
+
+	/* Notify fw of the state that the host is done with setting
+	 * the acl list. This is done with a special configuration
+	 * where the index of the mac address is passed as 0xff and
+	 * the mac address is zero mac. Firmware would carry out
+	 * certain operations based on the newly set acl list after
+	 * this notification.
+	 */
+	err = ath6kl_wmi_set_acl_list(ar->wmi, vif->fw_vif_idx,
+				      MAC_ACL_INDEX_EOL, zero_mac,
+				      params->acl_policy, false);
+
+	return err;
+}
+
 static int ath6kl_cfg80211_set_txe_config(struct wiphy *wiphy,
 					  struct net_device *dev,
 					  u32 rate, u32 pkts, u32 intvl)
@@ -3434,6 +3480,7 @@ static struct cfg80211_ops ath6kl_cfg80211_ops = {
 	.sched_scan_start = ath6kl_cfg80211_sscan_start,
 	.sched_scan_stop = ath6kl_cfg80211_sscan_stop,
 	.set_bitrate_mask = ath6kl_cfg80211_set_bitrate,
+	.set_mac_acl = ath6kl_set_mac_acl,
 	.set_cqm_txe_config = ath6kl_cfg80211_set_txe_config,
 };
 
@@ -3807,6 +3854,9 @@ int ath6kl_cfg80211_init(struct ath6kl *ar)
 		NL80211_PROBE_RESP_OFFLOAD_SUPPORT_WPS |
 		NL80211_PROBE_RESP_OFFLOAD_SUPPORT_WPS2 |
 		NL80211_PROBE_RESP_OFFLOAD_SUPPORT_P2P;
+
+	if (test_bit(ATH6KL_FW_CAPABILITY_MAC_ACL, ar->fw_capabilities))
+		ar->wiphy->max_acl_mac_addrs = MAX_ACL_MAC_ADDRS;
 
 	ret = wiphy_register(wiphy);
 	if (ret < 0) {

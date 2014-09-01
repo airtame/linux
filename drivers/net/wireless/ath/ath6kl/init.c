@@ -1096,6 +1096,8 @@ static int ath6kl_fetch_fw_apin(struct ath6kl *ar, const char *name)
 		data += ie_len;
 	};
 
+	__set_bit(ATH6KL_FW_CAPABILITY_MAC_ACL, ar->fw_capabilities);
+
 	ret = 0;
 out:
 	release_firmware(fw);
@@ -1577,6 +1579,7 @@ static const struct fw_capa_str_map {
 	{ ATH6KL_FW_CAPABILITY_REGDOMAIN, "regdomain" },
 	{ ATH6KL_FW_CAPABILITY_SCHED_SCAN_V2, "sched-scan-v2" },
 	{ ATH6KL_FW_CAPABILITY_HEART_BEAT_POLL, "hb-poll" },
+	{ ATH6KL_FW_CAPABILITY_MAC_ACL, "mac-acl" },
 };
 
 static const char *ath6kl_init_get_fw_capa_name(unsigned int id)

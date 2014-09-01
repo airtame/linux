@@ -136,6 +136,12 @@ enum ath6kl_fw_capability {
 	 */
 	ATH6KL_FW_CAPABILITY_HEART_BEAT_POLL,
 
+	/*
+	 * Firmware supports mac address based ACL with
+	 * white/black list
+	 */
+	ATH6KL_FW_CAPABILITY_MAC_ACL,
+
 	/* this needs to be last */
 	ATH6KL_FW_CAPABILITY_MAX,
 };

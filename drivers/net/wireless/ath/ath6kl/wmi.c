@@ -3786,6 +3786,58 @@ int ath6kl_wmi_set_inact_period(struct wmi *wmi, u8 if_idx, int inact_timeout)
 				   NO_SYNC_WMIFLAG);
 }
 
+int ath6kl_wmi_set_acl_policy(struct wmi *wmi, u8 if_idx, bool enable_acl)
+{
+	struct sk_buff *skb;
+	struct wmi_ap_acl_policy_cmd *cmd;
+
+	skb = ath6kl_wmi_get_new_buf(sizeof(*cmd));
+	if (!skb)
+		return -ENOMEM;
+
+	cmd = (struct wmi_ap_acl_policy_cmd *) skb->data;
+	cmd->policy = enable_acl ? WMI_ACL_BLWL_MAC : 0;
+
+	ath6kl_dbg(ATH6KL_DBG_WMI, "Set acl policy=%d\n", cmd->policy);
+
+	return ath6kl_wmi_cmd_send(wmi, if_idx, skb, WMI_AP_ACL_POLICY_CMDID,
+				   NO_SYNC_WMIFLAG);
+}
+
+int ath6kl_wmi_set_acl_list(struct wmi *wmi, u8 if_idx, int index,
+			    const u8 *mac_addr,
+			    enum nl80211_acl_policy acl_policy, bool reset)
+{
+	struct sk_buff *skb;
+	struct wmi_set_acl_list_cmd *cmd;
+
+	skb = ath6kl_wmi_get_new_buf(sizeof(*cmd));
+	if (!skb)
+		return -ENOMEM;
+
+	cmd = (struct wmi_set_acl_list_cmd *) skb->data;
+	cmd->index = index;
+	cmd->wildcard = 0;
+	memcpy(cmd->mac, mac_addr, ETH_ALEN);
+	if (reset) {
+		if (acl_policy == NL80211_ACL_POLICY_ACCEPT_UNLESS_LISTED)
+			cmd->action = WMI_ACL_RESET_BLACK_LIST;
+		else
+			cmd->action = WMI_ACL_RESET_WHITE_LIST;
+	} else {
+		if (acl_policy == NL80211_ACL_POLICY_ACCEPT_UNLESS_LISTED)
+			cmd->action = WMI_ACL_ADD_BLACK_MAC_ADDR;
+		else
+			cmd->action = WMI_ACL_ADD_WHITE_MAC_ADDR;
+	}
+
+	ath6kl_dbg(ATH6KL_DBG_WMI, "set acl mac: index:%d action:%d mac:%pM reset:%d\n",
+		   cmd->index, cmd->action, cmd->mac, reset);
+
+	return ath6kl_wmi_cmd_send(wmi, if_idx, skb, WMI_AP_ACL_MAC_LIST_CMDID,
+				   NO_SYNC_WMIFLAG);
+}
+
 static void ath6kl_wmi_hb_challenge_resp_event(struct wmi *wmi, u8 *datap,
 					       int len)
 {

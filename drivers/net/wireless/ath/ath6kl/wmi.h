@@ -2344,6 +2344,35 @@ struct wmi_ap_mode_stat {
 	struct wmi_per_sta_stat sta[AP_MAX_NUM_STA + 1];
 } __packed;
 
+#define MAX_ACL_MAC_ADDRS	10
+
+/* Special mac index to notify eol */
+#define MAC_ACL_INDEX_EOL	0xff
+
+#define WMI_ACL_BLWL_MAC	0x3
+
+enum wmi_mac_acl_action {
+	WMI_ACL_ADD_WHITE_MAC_ADDR = 0x01,
+	WMI_ACL_ADD_BLACK_MAC_ADDR,
+	WMI_ACL_RESET_WHITE_LIST,
+	WMI_ACL_RESET_BLACK_LIST,
+	WMI_ACL_RESET_BW_LIST = 0x10,
+};
+
+struct wmi_set_acl_list_cmd {
+	/* Takes one of actions from enum wmi_mac_acl_action */
+	u8 action;
+
+	u8 index;
+	u8 mac[ETH_ALEN];
+	u8 wildcard;
+} __packed;
+
+struct wmi_ap_acl_policy_cmd {
+	/* Type of acl that fw supports, WMI_ACL_BLWL_MAC */
+	u8 policy;
+} __packed;
+
 /* End of AP mode definitions */
 
 struct wmi_remain_on_chnl_cmd {
@@ -2694,6 +2723,11 @@ int ath6kl_wmi_set_appie_cmd(struct wmi *wmi, u8 if_idx, u8 mgmt_frm_type,
 int ath6kl_wmi_set_ie_cmd(struct wmi *wmi, u8 if_idx, u8 ie_id, u8 ie_field,
 			  const u8 *ie_info, u8 ie_len);
 
+int ath6kl_wmi_set_acl_policy(struct wmi *wmi, u8 if_idx, bool enable_acl);
+int ath6kl_wmi_set_acl_list(struct wmi *wmi, u8 if_idx, int index,
+			    const u8 *mac_addr,
+			    enum nl80211_acl_policy acl_policy,
+			    bool reset);
 /* P2P */
 int ath6kl_wmi_disable_11b_rates_cmd(struct wmi *wmi, bool disable);
 
