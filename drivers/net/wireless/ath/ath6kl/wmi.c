@@ -806,44 +806,41 @@ int ath6kl_wmi_set_roam_mode_cmd(struct wmi *wmi, enum wmi_roam_mode mode)
 				   NO_SYNC_WMIFLAG);
 }
 
-static int ath6kl_wmi_connect_event_rx(struct wmi *wmi, u8 *datap, int len,
-				       struct ath6kl_vif *vif)
+static int ath6kl_wmi_connect_event(struct wmi *wmi,
+				    union wmi_connect_common_info *u,
+				    struct ath6kl_vif *vif, u16 beacon_ie_len,
+				    u16 assoc_req_len, u16 assoc_resp_len,
+				    u8 *assoc_info)
 {
-	struct wmi_connect_event *ev;
 	u8 *pie, *peie;
-
-	if (len < sizeof(struct wmi_connect_event))
-		return -EINVAL;
-
-	ev = (struct wmi_connect_event *) datap;
 
 	if (vif->nw_type == AP_NETWORK) {
 		/* AP mode start/STA connected event */
 		struct net_device *dev = vif->ndev;
-		if (memcmp(dev->dev_addr, ev->u.ap_bss.bssid, ETH_ALEN) == 0) {
+		if (memcmp(dev->dev_addr, u->ap_bss.bssid, ETH_ALEN) == 0) {
 			ath6kl_dbg(ATH6KL_DBG_WMI,
 				   "%s: freq %d bssid %pM (AP started)\n",
-				   __func__, le16_to_cpu(ev->u.ap_bss.ch),
-				   ev->u.ap_bss.bssid);
+				   __func__, le16_to_cpu(u->ap_bss.ch),
+				   u->ap_bss.bssid);
 			ath6kl_connect_ap_mode_bss(
-				vif, le16_to_cpu(ev->u.ap_bss.ch));
+				vif, le16_to_cpu(u->ap_bss.ch));
 		} else {
 			ath6kl_dbg(ATH6KL_DBG_WMI,
 				   "%s: aid %u mac_addr %pM auth=%u keymgmt=%u cipher=%u apsd_info=%u (STA connected)\n",
-				   __func__, ev->u.ap_sta.aid,
-				   ev->u.ap_sta.mac_addr,
-				   ev->u.ap_sta.auth,
-				   ev->u.ap_sta.keymgmt,
-				   le16_to_cpu(ev->u.ap_sta.cipher),
-				   ev->u.ap_sta.apsd_info);
+				   __func__, u->ap_sta.aid,
+				   u->ap_sta.mac_addr,
+				   u->ap_sta.auth,
+				   u->ap_sta.keymgmt,
+				   le16_to_cpu(u->ap_sta.cipher),
+				   u->ap_sta.apsd_info);
 
 			ath6kl_connect_ap_mode_sta(
-				vif, ev->u.ap_sta.aid, ev->u.ap_sta.mac_addr,
-				ev->u.ap_sta.keymgmt,
-				le16_to_cpu(ev->u.ap_sta.cipher),
-				ev->u.ap_sta.auth, ev->assoc_req_len,
-				ev->assoc_info + ev->beacon_ie_len,
-				ev->u.ap_sta.apsd_info);
+				vif, u->ap_sta.aid, u->ap_sta.mac_addr,
+				u->ap_sta.keymgmt,
+				le16_to_cpu(u->ap_sta.cipher),
+				u->ap_sta.auth, assoc_req_len,
+				assoc_info + beacon_ie_len,
+				u->ap_sta.apsd_info);
 		}
 		return 0;
 	}
@@ -852,18 +849,17 @@ static int ath6kl_wmi_connect_event_rx(struct wmi *wmi, u8 *datap, int len,
 
 	ath6kl_dbg(ATH6KL_DBG_WMI,
 		   "wmi event connect freq %d bssid %pM listen_intvl %d beacon_intvl %d type %d\n",
-		   le16_to_cpu(ev->u.sta.ch), ev->u.sta.bssid,
-		   le16_to_cpu(ev->u.sta.listen_intvl),
-		   le16_to_cpu(ev->u.sta.beacon_intvl),
-		   le32_to_cpu(ev->u.sta.nw_type));
+		   le16_to_cpu(u->sta.ch), u->sta.bssid,
+		   le16_to_cpu(u->sta.listen_intvl),
+		   le16_to_cpu(u->sta.beacon_intvl),
+		   le32_to_cpu(u->sta.nw_type));
 
 	/* Start of assoc rsp IEs */
-	pie = ev->assoc_info + ev->beacon_ie_len +
-	      ev->assoc_req_len + (sizeof(u16) * 3); /* capinfo, status, aid */
+	pie = assoc_info + beacon_ie_len +
+	      assoc_req_len + (sizeof(u16) * 3); /* capinfo, status, aid */
 
 	/* End of assoc rsp IEs */
-	peie = ev->assoc_info + ev->beacon_ie_len + ev->assoc_req_len +
-	    ev->assoc_resp_len;
+	peie = assoc_info + beacon_ie_len + assoc_req_len + assoc_resp_len;
 
 	while (pie < peie) {
 		switch (*pie) {
@@ -884,15 +880,45 @@ static int ath6kl_wmi_connect_event_rx(struct wmi *wmi, u8 *datap, int len,
 		pie += pie[1] + 2;
 	}
 
-	ath6kl_connect_event(vif, le16_to_cpu(ev->u.sta.ch),
-			     ev->u.sta.bssid,
-			     le16_to_cpu(ev->u.sta.listen_intvl),
-			     le16_to_cpu(ev->u.sta.beacon_intvl),
-			     le32_to_cpu(ev->u.sta.nw_type),
-			     ev->beacon_ie_len, ev->assoc_req_len,
-			     ev->assoc_resp_len, ev->assoc_info);
+	ath6kl_connect_event(vif, le16_to_cpu(u->sta.ch),
+			     u->sta.bssid,
+			     le16_to_cpu(u->sta.listen_intvl),
+			     le16_to_cpu(u->sta.beacon_intvl),
+			     le32_to_cpu(u->sta.nw_type),
+			     beacon_ie_len, assoc_req_len,
+			     assoc_resp_len, assoc_info);
 
 	return 0;
+}
+
+static int ath6kl_wmi_connect_event_rx_advanced(struct wmi *wmi, u8 *datap,
+						int len, struct ath6kl_vif *vif)
+{
+	struct wmi_connect_event_advanced *ev;
+
+	if (len < sizeof(struct wmi_connect_event_advanced))
+		return -EINVAL;
+
+	ev = (struct wmi_connect_event_advanced *) datap;
+
+	return ath6kl_wmi_connect_event(wmi, &ev->u, vif, ev->beacon_ie_len,
+					ev->assoc_req_len, ev->assoc_resp_len,
+					ev->assoc_info);
+}
+
+static int ath6kl_wmi_connect_event_rx(struct wmi *wmi, u8 *datap,
+				       int len, struct ath6kl_vif *vif)
+{
+	struct wmi_connect_event *ev;
+
+	if (len < sizeof(struct wmi_connect_event))
+		return -EINVAL;
+
+	ev = (struct wmi_connect_event *) datap;
+
+	return ath6kl_wmi_connect_event(wmi, &ev->u, vif, ev->beacon_ie_len,
+					ev->assoc_req_len, ev->assoc_resp_len,
+					ev->assoc_info);
 }
 
 static struct country_code_to_enum_rd *
@@ -3912,6 +3938,10 @@ static int ath6kl_wmi_proc_events_vif(struct wmi *wmi, u16 if_idx, u16 cmd_id,
 	switch (cmd_id) {
 	case WMI_CONNECT_EVENTID:
 		ath6kl_dbg(ATH6KL_DBG_WMI, "WMI_CONNECT_EVENTID\n");
+		if (test_bit(ATH6KL_FW_CAPABILITY_LARGE_CONNECT_IE,
+			     vif->ar->fw_capabilities))
+			return ath6kl_wmi_connect_event_rx_advanced(wmi, datap,
+								   len, vif);
 		return ath6kl_wmi_connect_event_rx(wmi, datap, len, vif);
 	case WMI_DISCONNECT_EVENTID:
 		ath6kl_dbg(ATH6KL_DBG_WMI, "WMI_DISCONNECT_EVENTID\n");

@@ -1516,37 +1516,49 @@ enum wmi_phy_cap {
 	WMI_11AGN_CAP = 0x06,
 };
 
+union wmi_connect_common_info {
+	struct {
+		__le16 ch;
+		u8 bssid[ETH_ALEN];
+		__le16 listen_intvl;
+		__le16 beacon_intvl;
+		__le32 nw_type;
+	} sta;
+	struct {
+		u8 phymode;
+		u8 aid;
+		u8 mac_addr[ETH_ALEN];
+		u8 auth;
+		u8 keymgmt;
+		__le16 cipher;
+		u8 apsd_info;
+		u8 unused[3];
+	} ap_sta;
+	struct {
+		__le16 ch;
+		u8 bssid[ETH_ALEN];
+		u8 unused[8];
+	} ap_bss;
+} __packed;
+
 /* Connect Event */
 struct wmi_connect_event {
-	union {
-		struct {
-			__le16 ch;
-			u8 bssid[ETH_ALEN];
-			__le16 listen_intvl;
-			__le16 beacon_intvl;
-			__le32 nw_type;
-		} sta;
-		struct {
-			u8 phymode;
-			u8 aid;
-			u8 mac_addr[ETH_ALEN];
-			u8 auth;
-			u8 keymgmt;
-			__le16 cipher;
-			u8 apsd_info;
-			u8 unused[3];
-		} ap_sta;
-		struct {
-			__le16 ch;
-			u8 bssid[ETH_ALEN];
-			u8 unused[8];
-		} ap_bss;
-	} u;
+	union wmi_connect_common_info u;
 	u8 beacon_ie_len;
 	u8 assoc_req_len;
 	u8 assoc_resp_len;
 	u8 assoc_info[1];
 } __packed;
+
+/* Connect Event for large IE*/
+struct wmi_connect_event_advanced {
+	union wmi_connect_common_info u;
+	u16 beacon_ie_len;
+	u16 assoc_req_len;
+	u16 assoc_resp_len;
+	u8 assoc_info[1];
+} __packed;
+
 
 /* Disconnect Event */
 enum wmi_disconnect_reason {
