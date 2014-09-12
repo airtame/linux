@@ -184,10 +184,8 @@ int ath6kl_core_init(struct ath6kl *ar, enum ath6kl_htc_type htc_type)
 		goto err_rxbuf_cleanup;
 
 	ret = ath6kl_debug_init_fs(ar);
-	if (ret) {
-		wiphy_unregister(ar->wiphy);
-		goto err_rxbuf_cleanup;
-	}
+	if (ret)
+		goto err_cfg80211_cleanup;
 
 	for (i = 0; i < ar->vif_max; i++)
 		ar->avail_idx_map |= BIT(i);
@@ -203,8 +201,7 @@ int ath6kl_core_init(struct ath6kl *ar, enum ath6kl_htc_type htc_type)
 	if (!wdev) {
 		ath6kl_err("Failed to instantiate a network device\n");
 		ret = -ENOMEM;
-		wiphy_unregister(ar->wiphy);
-		goto err_rxbuf_cleanup;
+		goto err_cfg80211_cleanup;
 	}
 
 	ath6kl_dbg(ATH6KL_DBG_TRC, "%s: name=%s dev=0x%p, ar=0x%p\n",
@@ -223,6 +220,8 @@ int ath6kl_core_init(struct ath6kl *ar, enum ath6kl_htc_type htc_type)
 
 	return ret;
 
+err_cfg80211_cleanup:
+	ath6kl_cfg80211_cleanup(ar);
 err_rxbuf_cleanup:
 	ath6kl_debug_cleanup(ar);
 	ath6kl_htc_flush_rx_buf(ar->htc_target);

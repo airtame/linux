@@ -83,7 +83,7 @@ static struct ieee80211_rate ath6kl_rates[] = {
 			IEEE80211_HT_CAP_SGI_20		 | \
 			IEEE80211_HT_CAP_SGI_40)
 
-static struct ieee80211_channel ath6kl_2ghz_channels[] = {
+static const struct ieee80211_channel ath6kl_2ghz_channels[] = {
 	CHAN2G(1, 2412, 0),
 	CHAN2G(2, 2417, 0),
 	CHAN2G(3, 2422, 0),
@@ -100,7 +100,7 @@ static struct ieee80211_channel ath6kl_2ghz_channels[] = {
 	CHAN2G(14, 2484, 0),
 };
 
-static struct ieee80211_channel ath6kl_5ghz_a_channels[] = {
+static const struct ieee80211_channel ath6kl_5ghz_a_channels[] = {
 	CHAN5G(34, 0), CHAN5G(36, 0),
 	CHAN5G(38, 0), CHAN5G(40, 0),
 	CHAN5G(42, 0), CHAN5G(44, 0),
@@ -120,24 +120,6 @@ static struct ieee80211_channel ath6kl_5ghz_a_channels[] = {
 	CHAN5G(200, 0), CHAN5G(204, 0),
 	CHAN5G(208, 0), CHAN5G(212, 0),
 	CHAN5G(216, 0),
-};
-
-static struct ieee80211_supported_band ath6kl_band_2ghz = {
-	.n_channels = ARRAY_SIZE(ath6kl_2ghz_channels),
-	.channels = ath6kl_2ghz_channels,
-	.n_bitrates = ath6kl_g_rates_size,
-	.bitrates = ath6kl_g_rates,
-	.ht_cap.cap = ath6kl_g_htcap,
-	.ht_cap.ht_supported = true,
-};
-
-static struct ieee80211_supported_band ath6kl_band_5ghz = {
-	.n_channels = ARRAY_SIZE(ath6kl_5ghz_a_channels),
-	.channels = ath6kl_5ghz_a_channels,
-	.n_bitrates = ath6kl_a_rates_size,
-	.bitrates = ath6kl_a_rates,
-	.ht_cap.cap = ath6kl_a_htcap,
-	.ht_cap.ht_supported = true,
 };
 
 #define CCKM_KRK_CIPHER_SUITE 0x004096ff /* use for KRK */
@@ -3735,6 +3717,21 @@ err:
 	return NULL;
 }
 
+static void ath6kl_cfg80211_bands_destroy(struct ath6kl *ar)
+{
+	int i;
+
+	for (i = 0; i < IEEE80211_NUM_BANDS; i++) {
+		struct ieee80211_supported_band *sband = ar->wiphy->bands[i];
+		if (!sband)
+			continue;
+
+		kfree(sband->channels);
+		kfree(sband);
+		ar->wiphy->bands[i] = NULL;
+	}
+}
+
 int ath6kl_cfg80211_init(struct ath6kl *ar)
 {
 	struct wiphy *wiphy = ar->wiphy;
@@ -3793,34 +3790,73 @@ int ath6kl_cfg80211_init(struct ath6kl *ar)
 		return -EINVAL;
 	}
 
-	/*
-	 * Even if the fw has HT support, advertise HT cap only when
-	 * the firmware has support to override RSN capability, otherwise
-	 * 4-way handshake would fail.
-	 */
-	if (!(ht &&
-	      test_bit(ATH6KL_FW_CAPABILITY_RSN_CAP_OVERRIDE,
-		       ar->fw_capabilities))) {
-		ath6kl_band_2ghz.ht_cap.cap = 0;
-		ath6kl_band_2ghz.ht_cap.ht_supported = false;
-		ath6kl_band_5ghz.ht_cap.cap = 0;
-		ath6kl_band_5ghz.ht_cap.ht_supported = false;
+	if (band_2gig) {
+		struct ieee80211_supported_band *sband;
+
+		sband = kzalloc(sizeof(struct ieee80211_supported_band),
+				GFP_KERNEL);
+		if (!sband) {
+			ret = -ENOMEM;
+			goto err_bands_destroy;
+		}
+
+		sband->channels = kmemdup(ath6kl_2ghz_channels,
+				sizeof(ath6kl_2ghz_channels), GFP_KERNEL);
+		if (!sband->channels) {
+			kfree(sband);
+			ret = -ENOMEM;
+			goto err_bands_destroy;
+		}
+		sband->n_channels = ARRAY_SIZE(ath6kl_2ghz_channels);
+
+		sband->bitrates = ath6kl_g_rates;
+		sband->n_bitrates = ath6kl_g_rates_size;
+
+		if (ht && test_bit(ATH6KL_FW_CAPABILITY_RSN_CAP_OVERRIDE,
+					ar->fw_capabilities)) {
+			sband->ht_cap.cap = ath6kl_g_htcap;
+			sband->ht_cap.ht_supported = true;
+		}
+		sband->ht_cap.mcs.rx_mask[0] = 0xff;
+		if (ar->hw.flags & ATH6KL_HW_64BIT_RATES)
+			sband->ht_cap.mcs.rx_mask[1] = 0xff;
+
+		wiphy->bands[IEEE80211_BAND_2GHZ] = sband;
 	}
 
-	if (ar->hw.flags & ATH6KL_HW_64BIT_RATES) {
-		ath6kl_band_2ghz.ht_cap.mcs.rx_mask[0] = 0xff;
-		ath6kl_band_5ghz.ht_cap.mcs.rx_mask[0] = 0xff;
-		ath6kl_band_2ghz.ht_cap.mcs.rx_mask[1] = 0xff;
-		ath6kl_band_5ghz.ht_cap.mcs.rx_mask[1] = 0xff;
-	} else {
-		ath6kl_band_2ghz.ht_cap.mcs.rx_mask[0] = 0xff;
-		ath6kl_band_5ghz.ht_cap.mcs.rx_mask[0] = 0xff;
-	}
+	if (band_5gig) {
+		struct ieee80211_supported_band *sband;
 
-	if (band_2gig)
-		wiphy->bands[IEEE80211_BAND_2GHZ] = &ath6kl_band_2ghz;
-	if (band_5gig)
-		wiphy->bands[IEEE80211_BAND_5GHZ] = &ath6kl_band_5ghz;
+		sband = kzalloc(sizeof(struct ieee80211_supported_band),
+				GFP_KERNEL);
+		if (!sband) {
+			ret = -ENOMEM;
+			goto err_bands_destroy;
+		}
+
+		sband->channels = kmemdup(ath6kl_5ghz_a_channels,
+				sizeof(ath6kl_5ghz_a_channels), GFP_KERNEL);
+		if (!sband->channels) {
+			kfree(sband);
+			ret = -ENOMEM;
+			goto err_bands_destroy;
+		}
+		sband->n_channels = ARRAY_SIZE(ath6kl_5ghz_a_channels);
+
+		sband->bitrates = ath6kl_a_rates;
+		sband->n_bitrates = ath6kl_a_rates_size;
+
+		if (ht && test_bit(ATH6KL_FW_CAPABILITY_RSN_CAP_OVERRIDE,
+					ar->fw_capabilities)) {
+			sband->ht_cap.cap = ath6kl_a_htcap;
+			sband->ht_cap.ht_supported = true;
+		}
+		sband->ht_cap.mcs.rx_mask[0] = 0xff;
+		if (ar->hw.flags & ATH6KL_HW_64BIT_RATES)
+			sband->ht_cap.mcs.rx_mask[1] = 0xff;
+
+		wiphy->bands[IEEE80211_BAND_5GHZ] = sband;
+	}
 
 	wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
 
@@ -3864,12 +3900,16 @@ int ath6kl_cfg80211_init(struct ath6kl *ar)
 	ret = wiphy_register(wiphy);
 	if (ret < 0) {
 		ath6kl_err("couldn't register wiphy device\n");
-		return ret;
+		goto err_bands_destroy;
 	}
 
 	ar->wiphy_registered = true;
 
 	return 0;
+
+err_bands_destroy:
+	ath6kl_cfg80211_bands_destroy(ar);
+	return ret;
 }
 
 void ath6kl_cfg80211_cleanup(struct ath6kl *ar)
@@ -3877,6 +3917,8 @@ void ath6kl_cfg80211_cleanup(struct ath6kl *ar)
 	wiphy_unregister(ar->wiphy);
 
 	ar->wiphy_registered = false;
+
+	ath6kl_cfg80211_bands_destroy(ar);
 }
 
 struct ath6kl *ath6kl_cfg80211_create(void)
