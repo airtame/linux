@@ -629,9 +629,12 @@ int ath6kl_configure_target(struct ath6kl *ar)
 		return status;
 
 	/* Configure target refclk_hz */
-	status = ath6kl_bmi_write_hi32(ar, hi_refclk_hz, ar->hw.refclk_hz);
-	if (status)
-		return status;
+	if (ar->hw.refclk_hz != 0) {
+		status = ath6kl_bmi_write_hi32(ar, hi_refclk_hz,
+					       ar->hw.refclk_hz);
+		if (status)
+			return status;
+	}
 
 	return 0;
 }
@@ -1024,7 +1027,7 @@ static int ath6kl_fetch_fw_apin(struct ath6kl *ar, const char *name)
 			ar->hw.reserved_ram_size = le32_to_cpup(val);
 
 			ath6kl_dbg(ATH6KL_DBG_BOOT,
-				   "found reserved ram size ie 0x%d\n",
+				   "found reserved ram size ie %d\n",
 				   ar->hw.reserved_ram_size);
 			break;
 		case ATH6KL_FW_IE_CAPABILITIES:
@@ -1092,6 +1095,8 @@ static int ath6kl_fetch_fw_apin(struct ath6kl *ar, const char *name)
 		len -= ie_len;
 		data += ie_len;
 	};
+
+	__set_bit(ATH6KL_FW_CAPABILITY_MAC_ACL, ar->fw_capabilities);
 
 	ret = 0;
 out:
@@ -1161,11 +1166,19 @@ static int ath6kl_upload_board_file(struct ath6kl *ar)
 		ath6kl_bmi_write_hi32(ar, hi_board_data,
 				      board_address);
 	} else {
-		ath6kl_bmi_read_hi32(ar, hi_board_data, &board_address);
+		ret = ath6kl_bmi_read_hi32(ar, hi_board_data, &board_address);
+		if (ret) {
+			ath6kl_err("Failed to get board file target address.\n");
+			return ret;
+		}
 	}
 
 	/* determine where in target ram to write extended board data */
-	ath6kl_bmi_read_hi32(ar, hi_board_ext_data, &board_ext_address);
+	ret = ath6kl_bmi_read_hi32(ar, hi_board_ext_data, &board_ext_address);
+	if (ret) {
+		ath6kl_err("Failed to get extended board file target address.\n");
+		return ret;
+	}
 
 	if (ar->target_type == TARGET_TYPE_AR6003 &&
 	    board_ext_address == 0) {
@@ -1187,12 +1200,10 @@ static int ath6kl_upload_board_file(struct ath6kl *ar)
 	default:
 		WARN_ON(1);
 		return -EINVAL;
-		break;
 	}
 
 	if (board_ext_address &&
 	    ar->fw_board_len == (board_data_size + board_ext_data_size)) {
-
 		/* write extended board data */
 		ath6kl_dbg(ATH6KL_DBG_BOOT,
 			   "writing extended board data to 0x%x (%d B)\n",
@@ -1568,6 +1579,9 @@ static const struct fw_capa_str_map {
 	{ ATH6KL_FW_CAPABILITY_REGDOMAIN, "regdomain" },
 	{ ATH6KL_FW_CAPABILITY_SCHED_SCAN_V2, "sched-scan-v2" },
 	{ ATH6KL_FW_CAPABILITY_HEART_BEAT_POLL, "hb-poll" },
+	{ ATH6KL_FW_CAPABILITY_MAC_ACL, "mac-acl" },
+	{ ATH6KL_FW_CAPABILITY_REGDOMAIN_V2, "regdomain-v2" },
+	{ ATH6KL_FW_CAPABILITY_LARGE_CONNECT_IE, "large-connect-ie" },
 };
 
 static const char *ath6kl_init_get_fw_capa_name(unsigned int id)
@@ -1696,9 +1710,15 @@ static int __ath6kl_init_hw_start(struct ath6kl *ar)
 						    test_bit(WMI_READY,
 							     &ar->flag),
 						    WMI_TIMEOUT);
+	if (timeleft <= 0) {
+		clear_bit(WMI_READY, &ar->flag);
+		ath6kl_err("wmi is not ready or wait was interrupted: %ld\n",
+			   timeleft);
+		ret = -EIO;
+		goto err_htc_stop;
+	}
 
 	ath6kl_dbg(ATH6KL_DBG_BOOT, "firmware booted\n");
-
 
 	if (test_and_clear_bit(FIRST_BOOT, &ar->flag)) {
 		ath6kl_info("%s %s fw %s api %d%s\n",
@@ -1714,12 +1734,6 @@ static int __ath6kl_init_hw_start(struct ath6kl *ar)
 	if (ar->version.abi_ver != ATH6KL_ABI_VERSION) {
 		ath6kl_err("abi version mismatch: host(0x%x), target(0x%x)\n",
 			   ATH6KL_ABI_VERSION, ar->version.abi_ver);
-		ret = -EIO;
-		goto err_htc_stop;
-	}
-
-	if (!timeleft || signal_pending(current)) {
-		ath6kl_err("wmi is not ready or wait was interrupted\n");
 		ret = -EIO;
 		goto err_htc_stop;
 	}
@@ -1835,6 +1849,9 @@ void ath6kl_stop_txrx(struct ath6kl *ar)
 	spin_unlock_bh(&ar->list_lock);
 
 	clear_bit(WMI_READY, &ar->flag);
+
+	if (ar->fw_recovery.enable)
+		del_timer_sync(&ar->fw_recovery.hb_timer);
 
 	/*
 	 * After wmi_shudown all WMI events will be dropped. We

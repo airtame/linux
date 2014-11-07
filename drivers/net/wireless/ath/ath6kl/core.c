@@ -35,6 +35,7 @@ static unsigned int ath6kl_p2p;
 static unsigned int testmode;
 static unsigned int recovery_enable;
 static unsigned int heart_beat_poll;
+static char macaddr_param[3*ETH_ALEN];
 
 module_param(debug_mask, uint, 0644);
 module_param(suspend_mode, uint, 0644);
@@ -43,11 +44,12 @@ module_param(uart_debug, uint, 0644);
 module_param(ath6kl_p2p, uint, 0644);
 module_param(testmode, uint, 0644);
 module_param(recovery_enable, uint, 0644);
+module_param_string(mac, macaddr_param, sizeof(macaddr_param), 0444);
 module_param(heart_beat_poll, uint, 0644);
 MODULE_PARM_DESC(recovery_enable, "Enable recovery from firmware error");
-MODULE_PARM_DESC(heart_beat_poll, "Enable fw error detection periodic"   \
-		 "polling. This also specifies the polling interval in"  \
-		 "msecs. Set reocvery_enable for this to be effective");
+MODULE_PARM_DESC(heart_beat_poll,
+		 "Enable fw error detection periodic polling in msecs - Also set recovery_enable for this to be effective");
+
 
 void ath6kl_core_tx_complete(struct ath6kl *ar, struct sk_buff *skb)
 {
@@ -121,6 +123,9 @@ int ath6kl_core_init(struct ath6kl *ar, enum ath6kl_htc_type htc_type)
 	if (ret)
 		goto err_htc_cleanup;
 
+	if (macaddr_param[0])
+		ath6kl_mangle_mac_address(ar, macaddr_param);
+
 	/* FIXME: we should free all firmwares in the error cases below */
 
 	/* Indicate that WMI is enabled (although not ready yet) */
@@ -184,10 +189,8 @@ int ath6kl_core_init(struct ath6kl *ar, enum ath6kl_htc_type htc_type)
 		goto err_rxbuf_cleanup;
 
 	ret = ath6kl_debug_init_fs(ar);
-	if (ret) {
-		wiphy_unregister(ar->wiphy);
-		goto err_rxbuf_cleanup;
-	}
+	if (ret)
+		goto err_cfg80211_cleanup;
 
 	for (i = 0; i < ar->vif_max; i++)
 		ar->avail_idx_map |= BIT(i);
@@ -203,8 +206,7 @@ int ath6kl_core_init(struct ath6kl *ar, enum ath6kl_htc_type htc_type)
 	if (!wdev) {
 		ath6kl_err("Failed to instantiate a network device\n");
 		ret = -ENOMEM;
-		wiphy_unregister(ar->wiphy);
-		goto err_rxbuf_cleanup;
+		goto err_cfg80211_cleanup;
 	}
 
 	ath6kl_dbg(ATH6KL_DBG_TRC, "%s: name=%s dev=0x%p, ar=0x%p\n",
@@ -223,6 +225,8 @@ int ath6kl_core_init(struct ath6kl *ar, enum ath6kl_htc_type htc_type)
 
 	return ret;
 
+err_cfg80211_cleanup:
+	ath6kl_cfg80211_cleanup(ar);
 err_rxbuf_cleanup:
 	ath6kl_debug_cleanup(ar);
 	ath6kl_htc_flush_rx_buf(ar->htc_target);
@@ -337,6 +341,11 @@ EXPORT_SYMBOL(ath6kl_core_cleanup);
 
 void ath6kl_core_destroy(struct ath6kl *ar)
 {
+	int i;
+
+	for (i = 0; i < AP_MAX_NUM_STA; i++)
+		kfree(ar->sta_list[i].aggr_conn);
+
 	ath6kl_cfg80211_destroy(ar);
 }
 EXPORT_SYMBOL(ath6kl_core_destroy);

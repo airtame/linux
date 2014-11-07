@@ -898,7 +898,6 @@ struct wmi_start_scan_cmd {
  *  flags here
  */
 enum wmi_scan_ctrl_flags_bits {
-
 	/* set if can scan in the connect cmd */
 	CONNECT_SCAN_CTRL_FLAGS = 0x01,
 
@@ -1068,7 +1067,7 @@ struct wmi_power_mode_cmd {
 } __packed;
 
 /*
- * Policy to determnine whether power save failure event should be sent to
+ * Policy to determine whether power save failure event should be sent to
  * host during scanning
  */
 enum power_save_fail_event_policy {
@@ -1517,37 +1516,49 @@ enum wmi_phy_cap {
 	WMI_11AGN_CAP = 0x06,
 };
 
+union wmi_connect_common_info {
+	struct {
+		__le16 ch;
+		u8 bssid[ETH_ALEN];
+		__le16 listen_intvl;
+		__le16 beacon_intvl;
+		__le32 nw_type;
+	} sta;
+	struct {
+		u8 phymode;
+		u8 aid;
+		u8 mac_addr[ETH_ALEN];
+		u8 auth;
+		u8 keymgmt;
+		__le16 cipher;
+		u8 apsd_info;
+		u8 unused[3];
+	} ap_sta;
+	struct {
+		__le16 ch;
+		u8 bssid[ETH_ALEN];
+		u8 unused[8];
+	} ap_bss;
+} __packed;
+
 /* Connect Event */
 struct wmi_connect_event {
-	union {
-		struct {
-			__le16 ch;
-			u8 bssid[ETH_ALEN];
-			__le16 listen_intvl;
-			__le16 beacon_intvl;
-			__le32 nw_type;
-		} sta;
-		struct {
-			u8 phymode;
-			u8 aid;
-			u8 mac_addr[ETH_ALEN];
-			u8 auth;
-			u8 keymgmt;
-			__le16 cipher;
-			u8 apsd_info;
-			u8 unused[3];
-		} ap_sta;
-		struct {
-			__le16 ch;
-			u8 bssid[ETH_ALEN];
-			u8 unused[8];
-		} ap_bss;
-	} u;
+	union wmi_connect_common_info u;
 	u8 beacon_ie_len;
 	u8 assoc_req_len;
 	u8 assoc_resp_len;
 	u8 assoc_info[1];
 } __packed;
+
+/* Connect Event for large IE*/
+struct wmi_connect_event_advanced {
+	union wmi_connect_common_info u;
+	u16 beacon_ie_len;
+	u16 assoc_req_len;
+	u16 assoc_resp_len;
+	u8 assoc_info[1];
+} __packed;
+
 
 /* Disconnect Event */
 enum wmi_disconnect_reason {
@@ -2345,6 +2356,35 @@ struct wmi_ap_mode_stat {
 	struct wmi_per_sta_stat sta[AP_MAX_NUM_STA + 1];
 } __packed;
 
+#define MAX_ACL_MAC_ADDRS	10
+
+/* Special mac index to notify eol */
+#define MAC_ACL_INDEX_EOL	0xff
+
+#define WMI_ACL_BLWL_MAC	0x3
+
+enum wmi_mac_acl_action {
+	WMI_ACL_ADD_WHITE_MAC_ADDR = 0x01,
+	WMI_ACL_ADD_BLACK_MAC_ADDR,
+	WMI_ACL_RESET_WHITE_LIST,
+	WMI_ACL_RESET_BLACK_LIST,
+	WMI_ACL_RESET_BW_LIST = 0x10,
+};
+
+struct wmi_set_acl_list_cmd {
+	/* Takes one of actions from enum wmi_mac_acl_action */
+	u8 action;
+
+	u8 index;
+	u8 mac[ETH_ALEN];
+	u8 wildcard;
+} __packed;
+
+struct wmi_ap_acl_policy_cmd {
+	/* Type of acl that fw supports, WMI_ACL_BLWL_MAC */
+	u8 policy;
+} __packed;
+
 /* End of AP mode definitions */
 
 struct wmi_remain_on_chnl_cmd {
@@ -2695,6 +2735,11 @@ int ath6kl_wmi_set_appie_cmd(struct wmi *wmi, u8 if_idx, u8 mgmt_frm_type,
 int ath6kl_wmi_set_ie_cmd(struct wmi *wmi, u8 if_idx, u8 ie_id, u8 ie_field,
 			  const u8 *ie_info, u8 ie_len);
 
+int ath6kl_wmi_set_acl_policy(struct wmi *wmi, u8 if_idx, bool enable_acl);
+int ath6kl_wmi_set_acl_list(struct wmi *wmi, u8 if_idx, int index,
+			    const u8 *mac_addr,
+			    enum nl80211_acl_policy acl_policy,
+			    bool reset);
 /* P2P */
 int ath6kl_wmi_disable_11b_rates_cmd(struct wmi *wmi, bool disable);
 
