@@ -21,6 +21,7 @@
 #
 # Author(s): ="Atheros"
 #------------------------------------------------------------------------------
+ifneq ($(KERNELRELEASE),)
 
 obj-$(CONFIG_ATH6KL) += ath6kl_core.o
 ath6kl_core-y += debug.o
@@ -48,3 +49,17 @@ ath6kl_usb-y += usb.o
 
 # for tracing framework to find trace.h
 CFLAGS_trace.o := -I$(src)
+else
+EXTRA_CFLAGS += -g
+
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD  := $(shell pwd)
+
+default:
+	@echo "Building WLAN module"
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
+
+clean:
+	rm -rf *.ko *.o *.mod.c *.order *.symvers
+endif
+
