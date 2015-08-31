@@ -1343,7 +1343,13 @@ static int ath6kl_sdio_probe(struct sdio_func *func,
 		ret = -ENOMEM;
 		goto err_dma;
 	}
-
+#ifdef AIRTAME_WLAN
+	/** We really need to track an index
+	 * of mmc device we're running on. Later
+	 * it's gonna be used for determining the frequency.
+	 */
+	ar->index = func->card->host->index;
+#endif /* AIRTAME_WLAN */
 	ar_sdio->ar = ar;
 	ar->hif_type = ATH6KL_HIF_TYPE_SDIO;
 	ar->hif_priv = ar_sdio;
