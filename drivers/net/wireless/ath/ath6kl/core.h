@@ -863,6 +863,9 @@ struct ath6kl {
 		u8 disc_timeout;
 	} debug;
 #endif /* CONFIG_ATH6KL_DEBUG */
+#ifdef AIRTAME_WLAN
+	int index;
+#endif /* AIRTAME_WLAN */
 };
 
 static inline struct ath6kl *ath6kl_priv(struct net_device *dev)
@@ -882,6 +885,22 @@ static inline u32 ath6kl_get_hi_item_addr(struct ath6kl *ar,
 
 	return addr;
 }
+
+#ifdef AIRTAME_WLAN
+typedef enum {
+	ATH6KL_BAND_2GHZ,
+	ATH6KL_BAND_5GHZ,
+	ATH6KL_BAND_INVALID,
+} ath6kl_band_t;
+
+static inline ath6kl_band_t get_ar_band(struct ath6kl *ar)
+{
+	/** It's another ugly hack, which is based on a fact that we have 2 mmc
+	   * devices: mmc0 and mmc1, providing WiFi functionality
+	   */
+	return (0 == ar->index) ? ATH6KL_BAND_5GHZ : ((1 == ar->index) ? ATH6KL_BAND_2GHZ : ATH6KL_BAND_INVALID);
+}
+#endif /* AIRTAME_WLAN */
 
 int ath6kl_configure_target(struct ath6kl *ar);
 void ath6kl_detect_error(unsigned long ptr);
