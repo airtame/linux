@@ -54,6 +54,20 @@ MODULE_PARM_DESC(recovery_enable, "Enable recovery from firmware error");
 MODULE_PARM_DESC(heart_beat_poll,
 		 "Enable fw error detection periodic polling in msecs - Also set recovery_enable for this to be effective");
 
+#ifdef AIRTAME_WLAN
+static const struct ieee80211_iface_limit if_limits[] = {
+	{ .max = 2, .types = BIT(NL80211_IFTYPE_STATION), },
+	{ .max = 2, .types = BIT(NL80211_IFTYPE_AP), },
+};
+static const struct ieee80211_iface_combination if_comb[] = {
+	{
+		.limits = if_limits,
+		.n_limits = ARRAY_SIZE(if_limits),
+		.max_interfaces = 2,
+		.num_different_channels = 1,
+	},
+};
+#endif /* AIRTAME_WLAN */
 
 void ath6kl_core_tx_complete(struct ath6kl *ar, struct sk_buff *skb)
 {
@@ -198,7 +212,10 @@ int ath6kl_core_init(struct ath6kl *ar, enum ath6kl_htc_type htc_type)
 
 	for (i = 0; i < ar->vif_max; i++)
 		ar->avail_idx_map |= BIT(i);
-
+#ifdef AIRTAME_WLAN
+	ar->wiphy->n_iface_combinations = ARRAY_SIZE(if_comb);
+	ar->wiphy->iface_combinations = if_comb;
+#endif /* AIRTAME_WLAN */
 	rtnl_lock();
 
 	/* Add an initial station interface */
