@@ -54,7 +54,6 @@ MODULE_PARM_DESC(recovery_enable, "Enable recovery from firmware error");
 MODULE_PARM_DESC(heart_beat_poll,
 		 "Enable fw error detection periodic polling in msecs - Also set recovery_enable for this to be effective");
 
-
 void ath6kl_core_tx_complete(struct ath6kl *ar, struct sk_buff *skb)
 {
 	ath6kl_htc_tx_complete(ar, skb);
@@ -198,7 +197,6 @@ int ath6kl_core_init(struct ath6kl *ar, enum ath6kl_htc_type htc_type)
 
 	for (i = 0; i < ar->vif_max; i++)
 		ar->avail_idx_map |= BIT(i);
-
 	rtnl_lock();
 
 	/* Add an initial station interface */
