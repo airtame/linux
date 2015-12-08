@@ -56,8 +56,9 @@ static void ath6kl_calculate_crc(u32 target_type, u8 *data, size_t len)
 
 void ath6kl_mangle_mac_address(struct ath6kl *ar, const char *macaddr_param)
 {
-	u8 *ptr_mac;
-
+	u8 *ptr_mac = NULL;
+	u8 idx = 0;
+	
 	switch (ar->target_type) {
 	case TARGET_TYPE_AR6003:
 		ptr_mac = ar->fw_board + AR6003_MAC_ADDRESS_OFFSET;
@@ -77,6 +78,15 @@ void ath6kl_mangle_mac_address(struct ath6kl *ar, const char *macaddr_param)
 
 	if (!mac_pton(macaddr_param, ptr_mac))
 		return;
+
+	if (1 == sscanf(ar->wiphy->dev.kobj.name,  "phy%hhu", &idx))
+	{
+		ptr_mac[5] += idx;
+	}
+	else
+	{
+		ath6kl_warn("Failed to set a correct MAC address: %hhu\n", idx);
+	}
 
 	ath6kl_dbg(ATH6KL_DBG_BOOT,
 		   "MAC changed to  %02X:%02X:%02X:%02X:%02X:%02X\n",
