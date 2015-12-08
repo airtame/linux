@@ -63,3 +63,10 @@ config ATH6KL_REGDOMAIN
 	  are taken into account.
 
 	  If unsure, say N.
+
+config AIRTAME_WLAN
+       bool "Airtame-related Wi-Fi features"
+       depends on ATH6KL
+       ---help---
+       Enables Airtame Wi-Fi features:
+       * MAC address mangeling
