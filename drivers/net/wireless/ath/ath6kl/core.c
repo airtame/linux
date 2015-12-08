@@ -122,10 +122,10 @@ int ath6kl_core_init(struct ath6kl *ar, enum ath6kl_htc_type htc_type)
 	ret = ath6kl_init_fetch_firmwares(ar);
 	if (ret)
 		goto err_htc_cleanup;
-
+#ifdef AIRTAME_WLAN
 	if (macaddr_param[0])
 		ath6kl_mangle_mac_address(ar, macaddr_param);
-
+#endif /* AIRTAME_WLAN */
 	/* FIXME: we should free all firmwares in the error cases below */
 
 	/* Indicate that WMI is enabled (although not ready yet) */
