@@ -35,7 +35,9 @@ static unsigned int ath6kl_p2p;
 static unsigned int testmode;
 static unsigned int recovery_enable;
 static unsigned int heart_beat_poll;
+#ifdef AIRTAME_WLAN
 static char macaddr_param[3*ETH_ALEN];
+#endif /* AIRTAME_WLAN */
 
 module_param(debug_mask, uint, 0644);
 module_param(suspend_mode, uint, 0644);
@@ -44,7 +46,9 @@ module_param(uart_debug, uint, 0644);
 module_param(ath6kl_p2p, uint, 0644);
 module_param(testmode, uint, 0644);
 module_param(recovery_enable, uint, 0644);
+#ifdef AIRTAME_WLAN
 module_param_string(mac, macaddr_param, sizeof(macaddr_param), 0444);
+#endif /* AIRTAME_WLAN */
 module_param(heart_beat_poll, uint, 0644);
 MODULE_PARM_DESC(recovery_enable, "Enable recovery from firmware error");
 MODULE_PARM_DESC(heart_beat_poll,
