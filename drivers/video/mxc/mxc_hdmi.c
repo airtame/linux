@@ -906,8 +906,7 @@ static bool  hdmi_edid_wait_i2c_done(struct mxc_hdmi *hdmi, int msec)
     unsigned char val = 0;
     val = hdmi_readb(HDMI_IH_I2CM_STAT0) & 0x2;
     while (val == 0) {
-
-		udelay(1000);
+                udelay(1000);
 		if (msec-- == 0) {
 			dev_dbg(&hdmi->pdev->dev,
 					"HDMI EDID i2c operation time out!!\n");
@@ -918,12 +917,14 @@ static bool  hdmi_edid_wait_i2c_done(struct mxc_hdmi *hdmi, int msec)
 	return true;
 }
 
+static int countEdidBytes=0;
 static u8 hdmi_edid_i2c_read(struct mxc_hdmi *hdmi,
 					u8 addr, u8 blockno)
 {
 	u8 spointer = blockno / 2;
 	u8 edidaddress = ((blockno % 2) * 0x80) + addr;
 	u8 data;
+        bool result;
 
 	hdmi_writeb(0xFF, HDMI_IH_I2CM_STAT0);
 	hdmi_writeb(edidaddress, HDMI_I2CM_ADDRESS);
@@ -935,8 +936,13 @@ static u8 hdmi_edid_i2c_read(struct mxc_hdmi *hdmi,
 		hdmi_writeb(HDMI_I2CM_OPERATION_READ_EXT,
 			HDMI_I2CM_OPERATION);
 
-	hdmi_edid_wait_i2c_done(hdmi, 30);
-	data = hdmi_readb(HDMI_I2CM_DATAI);
+	result = hdmi_edid_wait_i2c_done(hdmi, 30);
+        if (result) {
+	    data = hdmi_readb(HDMI_I2CM_DATAI);
+            ++countEdidBytes;
+        }else {
+            data = 0x00;
+        }
 	hdmi_writeb(0xFF, HDMI_IH_I2CM_STAT0);
 	return data;
 }
@@ -1557,10 +1563,17 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 		return -ENOENT;
 	}
 
+	countEdidBytes=0;
 	for (i = 0; i < 128; i++) {
-		*ediddata = hdmi_edid_i2c_read(hdmi, i, 0);
+	        *ediddata = hdmi_edid_i2c_read(hdmi, i, 0);
 		ediddata++;
 	}
+
+	if (countEdidBytes != 128) {
+	   dev_info(&hdmi->pdev->dev, "%d bytes out of 128 read from edid\n",countEdidBytes);
+           countEdidBytes = 0;
+           return -EIO;
+        }
 
 	extblknum = edid[0x7E];
 	if (extblknum == 255)
@@ -1568,12 +1581,17 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 
 	if (extblknum) {
 		ediddata = edid + EDID_LENGTH;
+                countEdidBytes = 0;
 		for (i = 0; i < 128; i++) {
 			*ediddata = hdmi_edid_i2c_read(hdmi, i, 1);
 			ediddata++;
 		}
+                if (countEdidBytes != 128) {
+                   dev_info(&hdmi->pdev->dev, "%d bytes out of 128 read from edid extended block: 1\n",countEdidBytes);
+                   countEdidBytes=0;
+		   return -EIO;
+               }
 	}
-
 	/* edid first block parsing */
 	memset(&fbi->monspecs, 0, sizeof(fbi->monspecs));
 	fb_edid_to_monspecs(edid, &fbi->monspecs);
@@ -1588,9 +1606,14 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 	/* need read segment block? */
 	if (extblknum > 1) {
 		for (j = 2; j <= extblknum; j++) {
+			countEdidBytes = 0;
 			for (i = 0; i < 128; i++)
 				tmpedid[i] = hdmi_edid_i2c_read(hdmi, i, j);
-
+                        if (countEdidBytes != 128) {
+			    dev_info(&hdmi->pdev->dev, "%d bytes out of 128 read from edid extended block: %d\n",countEdidBytes,j);
+                            countEdidBytes=0;
+			    return -EIO;
+			}
 			/* edid ext block parsing */
 			ret = mxc_edid_parse_ext_blk(tmpedid,
 					cfg, &fbi->monspecs);
