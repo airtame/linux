@@ -65,6 +65,7 @@
 #define DISPDRV_HDMI	"hdmi"
 #define HDMI_EDID_LEN		512
 
+
 /* status codes for reading edid */
 #define HDMI_EDID_SUCCESS	0
 #define HDMI_EDID_FAIL		-1
@@ -906,8 +907,7 @@ static bool  hdmi_edid_wait_i2c_done(struct mxc_hdmi *hdmi, int msec)
     unsigned char val = 0;
     val = hdmi_readb(HDMI_IH_I2CM_STAT0) & 0x2;
     while (val == 0) {
-
-		udelay(1000);
+                udelay(1000);
 		if (msec-- == 0) {
 			dev_dbg(&hdmi->pdev->dev,
 					"HDMI EDID i2c operation time out!!\n");
@@ -918,12 +918,13 @@ static bool  hdmi_edid_wait_i2c_done(struct mxc_hdmi *hdmi, int msec)
 	return true;
 }
 
-static u8 hdmi_edid_i2c_read(struct mxc_hdmi *hdmi,
+static bool hdmi_edid_i2c_read(struct mxc_hdmi *hdmi,unsigned char *edidata,
 					u8 addr, u8 blockno)
 {
 	u8 spointer = blockno / 2;
 	u8 edidaddress = ((blockno % 2) * 0x80) + addr;
 	u8 data;
+	bool result;
 
 	hdmi_writeb(0xFF, HDMI_IH_I2CM_STAT0);
 	hdmi_writeb(edidaddress, HDMI_I2CM_ADDRESS);
@@ -935,10 +936,13 @@ static u8 hdmi_edid_i2c_read(struct mxc_hdmi *hdmi,
 		hdmi_writeb(HDMI_I2CM_OPERATION_READ_EXT,
 			HDMI_I2CM_OPERATION);
 
-	hdmi_edid_wait_i2c_done(hdmi, 30);
-	data = hdmi_readb(HDMI_I2CM_DATAI);
+	result = hdmi_edid_wait_i2c_done(hdmi, 30);
+	if (result) {
+		data = hdmi_readb(HDMI_I2CM_DATAI);
+               *edidata = data;
+	}
 	hdmi_writeb(0xFF, HDMI_IH_I2CM_STAT0);
-	return data;
+        return result;
 }
 
 static int keepalive=1;
@@ -1550,15 +1554,19 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 	memset(cfg, 0, sizeof(struct mxc_edid_cfg));
 
 	/* Check first three byte of EDID head */
-	if (!(hdmi_edid_i2c_read(hdmi, 0, 0) == 0x00) ||
-		!(hdmi_edid_i2c_read(hdmi, 1, 0) == 0xFF) ||
-		!(hdmi_edid_i2c_read(hdmi, 2, 0) == 0xFF)) {
-		dev_info(&hdmi->pdev->dev, "EDID head check failed!");
-		return -ENOENT;
+	if ((!((hdmi_edid_i2c_read(hdmi,&ediddata[0],0,0)) && (ediddata[0] == 0x00))) ||
+		(!((hdmi_edid_i2c_read(hdmi,&ediddata[1],1,0)) && (ediddata[1] == 0xFF))) ||
+		(!((hdmi_edid_i2c_read(hdmi,&ediddata[2],2,0)) && (ediddata[2] == 0xFF)))){
+			dev_info(&hdmi->pdev->dev, "EDID head check failed !\n");
+			return -ENOENT;
 	}
 
 	for (i = 0; i < 128; i++) {
-		*ediddata = hdmi_edid_i2c_read(hdmi, i, 0);
+		bool result = hdmi_edid_i2c_read(hdmi,ediddata, i, 0);
+		if (!result) {
+			  dev_info(&hdmi->pdev->dev, "%d bytes out of 128 read from edid\n",i);
+			  return -EIO;
+		}
 		ediddata++;
 	}
 
@@ -1569,7 +1577,11 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 	if (extblknum) {
 		ediddata = edid + EDID_LENGTH;
 		for (i = 0; i < 128; i++) {
-			*ediddata = hdmi_edid_i2c_read(hdmi, i, 1);
+			bool result = hdmi_edid_i2c_read(hdmi,ediddata, i, 1);
+			if (!result) {
+				 dev_info(&hdmi->pdev->dev, "%d bytes out of 128 read from edid extended block: 1\n",i);
+				 return -EIO;
+			}
 			ediddata++;
 		}
 	}
@@ -1588,8 +1600,13 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 	/* need read segment block? */
 	if (extblknum > 1) {
 		for (j = 2; j <= extblknum; j++) {
-			for (i = 0; i < 128; i++)
-				tmpedid[i] = hdmi_edid_i2c_read(hdmi, i, j);
+			for (i = 0; i < 128; i++){
+				bool result = hdmi_edid_i2c_read(hdmi,&tmpedid[i], i, j);
+				if (!result) {
+					dev_info(&hdmi->pdev->dev, "%d bytes out of 128 read from edid extended block: %d\n",i,j);
+					return -EIO;
+				}
+			}
 
 			/* edid ext block parsing */
 			ret = mxc_edid_parse_ext_blk(tmpedid,
@@ -1797,11 +1814,12 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 	fb_add_videomode(&vga_mode, &hdmi->fbi->modelist);
 
 	for (i = 0; i < hdmi->fbi->monspecs.modedb_len; i++) {
-		/*
-		 * We might check here if mode is supported by HDMI.
-		 * We do not currently support interlaced modes.
-		 * And add CEA modes in the modelist.
-		 */
+                /*
+                 * We might check here if mode is supported by HDMI.
+                 * We do not currently support interlaced modes.
+                 * And add CEA modes in the modelist.
+                 */
+
 		mode = &hdmi->fbi->monspecs.modedb[i];
 
 		if (!(mode->vmode & FB_VMODE_INTERLACED) &&
