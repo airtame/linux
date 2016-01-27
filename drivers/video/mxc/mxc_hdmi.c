@@ -197,6 +197,7 @@ static bool hdmi_inited;
 static bool hdcp_init;
 
 extern const struct fb_videomode mxc_cea_mode[64];
+extern const struct fb_videomode mxc_vesa_mode[64];
 extern void mxc_hdmi_cec_handle(u16 cec_stat);
 
 static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event);
@@ -1805,6 +1806,7 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 {
 	int i;
 	struct fb_videomode *mode;
+	int vesa_vic,cea_vic;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
@@ -1817,14 +1819,22 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		/*
 		 * We might check here if mode is supported by HDMI.
 		 * We do not currently support interlaced modes.
-		 * And add CEA modes in the modelist.
+		 * And add CEA and VESA modes in the modelist.
 		 */
 		mode = &hdmi->fbi->monspecs.modedb[i];
+		cea_vic = mxc_edid_cea_mode_to_vic(mode);
+		vesa_vic = mxc_edid_vesa_mode_to_vic(mode);
 
 		if (!(mode->vmode & FB_VMODE_INTERLACED) &&
-				(mxc_edid_mode_to_vic(mode) != 0)) {
+				((cea_vic !=0 ) || (vesa_vic != 0))) {
 
 			dev_dbg(&hdmi->pdev->dev, "Added mode %d:", i);
+			if (cea_vic) {
+				dev_info(&hdmi->pdev->dev,"%s: Added CEA mode %d(VIC %u):",__func__,i,cea_vic);
+			}
+			if (vesa_vic) {
+				dev_info(&hdmi->pdev->dev,"%s: Added VESA mode %d(VIC %u):",__func__,i,vesa_vic);
+			}
 			dev_dbg(&hdmi->pdev->dev,
 				"xres = %d, yres = %d, freq = %d, vmode = %d, flag = %d\n",
 				hdmi->fbi->monspecs.modedb[i].xres,
@@ -1866,6 +1876,14 @@ static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0))
 			fb_add_videomode(mode, &hdmi->fbi->modelist);
 	}
+
+	/*Add all the non-interlaced VESA modes to the default modelist*/
+	for (i = 0; i < ARRAY_SIZE(mxc_vesa_mode); i++) {
+		mode = &mxc_vesa_mode[i];
+		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0))
+			fb_add_videomode(mode, &hdmi->fbi->modelist);
+	}
+
 
 	console_unlock();
 }
@@ -2153,6 +2171,7 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 {
 	struct fb_videomode m;
 	const struct fb_videomode *edid_mode;
+	int vesa_vic = 0;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
@@ -2173,18 +2192,31 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 			dump_fb_videomode((struct fb_videomode *)edid_mode);
 			/* update fbi mode */
 			hdmi->fbi->mode = (struct fb_videomode *)edid_mode;
-			hdmi->vic = mxc_edid_mode_to_vic(edid_mode);
+			hdmi->vic = mxc_edid_cea_mode_to_vic(edid_mode);
+			if (!hdmi->vic)
+				vesa_vic = mxc_edid_vesa_mode_to_vic(edid_mode);
 		}
 	}
 
 	hdmi_disable_overflow_interrupts();
 
-	dev_dbg(&hdmi->pdev->dev, "CEA mode used vic=%d\n", hdmi->vic);
 	if (hdmi->edid_cfg.hdmi_cap)
 		hdmi->hdmi_data.video_mode.mDVI = false;
 	else {
-		dev_dbg(&hdmi->pdev->dev, "CEA mode vic=%d work in DVI\n", hdmi->vic);
 		hdmi->hdmi_data.video_mode.mDVI = true;
+	}
+	if (hdmi->vic != 0) {
+		if (!hdmi->hdmi_data.video_mode.mDVI)
+			dev_dbg(&hdmi->pdev->dev, "CEA mode used vic=%d\n", hdmi->vic);
+		else
+			dev_dbg(&hdmi->pdev->dev, "CEA mode vic=%d work in DVI\n", hdmi->vic);
+	}
+	else {
+		if (!hdmi->hdmi_data.video_mode.mDVI)
+			dev_dbg(&hdmi->pdev->dev, "VESA mode used vic=%d\n", vesa_vic);
+		else {
+			dev_dbg(&hdmi->pdev->dev, "VESA mode vic=%d work in DVI\n", vesa_vic);
+		}
 	}
 
 	if ((hdmi->vic == 6) || (hdmi->vic == 7) ||
@@ -2566,6 +2598,13 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 	/*Add all no interlaced CEA mode to default modelist */
 	for (i = 0; i < ARRAY_SIZE(mxc_cea_mode); i++) {
 		mode = &mxc_cea_mode[i];
+		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0))
+			fb_add_videomode(mode, &hdmi->fbi->modelist);
+	}
+
+	/*Add all the non-interlaced VESA modes to the default modelist*/
+	for (i = 0; i < ARRAY_SIZE(mxc_vesa_mode); i++) {
+		mode = &mxc_vesa_mode[i];
 		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0))
 			fb_add_videomode(mode, &hdmi->fbi->modelist);
 	}
