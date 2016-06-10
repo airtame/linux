@@ -1525,8 +1525,16 @@ union wmi_connect_common_info {
 		__le32 nw_type;
 	} sta;
 	struct {
+#ifndef AIRTAME_WLAN
 		u8 aid;
 		u8 phymode;
+#else
+/**
+ * @TODO: Add compile-time FW version detection?
+ * */
+		u8 phymode;
+		u8 aid;
+#endif /* AIRTAME_WLAN */
 		u8 mac_addr[ETH_ALEN];
 		u8 auth;
 		u8 keymgmt;
