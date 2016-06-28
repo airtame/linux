@@ -1,20 +1,54 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2013 by Vivante Corp.
+*    The MIT License (MIT)
 *
-*    This program is free software; you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation; either version 2 of the license, or
-*    (at your option) any later version.
+*    Copyright (c) 2014 - 2016 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2016 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
 *
 *    This program is distributed in the hope that it will be useful,
 *    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *    GNU General Public License for more details.
 *
 *    You should have received a copy of the GNU General Public License
-*    along with this program; if not write to the Free Software
-*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
 *
 *****************************************************************************/
 
@@ -46,7 +80,7 @@
 */
 gceSTATUS gckVGMMU_Construct(
     IN gckVGKERNEL Kernel,
-    IN gctSIZE_T MmuSize,
+    IN gctUINT32 MmuSize,
     OUT gckVGMMU * Mmu
     )
 {
@@ -107,7 +141,7 @@ gceSTATUS gckVGMMU_Construct(
     }
 
     /* Allocate the page table. */
-    mmu->pageTableSize = MmuSize;
+    mmu->pageTableSize = (gctUINT32)MmuSize;
     status = gckOS_AllocateContiguous(os,
                                       gcvFALSE,
                                       &mmu->pageTableSize,
@@ -133,7 +167,7 @@ gceSTATUS gckVGMMU_Construct(
     }
 
     /* Compute number of entries in page table. */
-    mmu->entryCount = mmu->pageTableSize / sizeof(gctUINT32);
+    mmu->entryCount = (gctUINT32)mmu->pageTableSize / sizeof(gctUINT32);
     mmu->entry = 0;
 
     /* Mark the entire page table as available. */
@@ -313,7 +347,7 @@ gceSTATUS gckVGMMU_AllocatePages(
     }
 
     /* Compute the tail for this allocation. */
-    tail = Mmu->entryCount - PageCount;
+    tail = Mmu->entryCount - (gctUINT32)PageCount;
 
     /* Walk all entries until we find enough slots. */
     for (index = Mmu->entry; index <= tail;)
@@ -395,7 +429,7 @@ gceSTATUS gckVGMMU_AllocatePages(
         if (status >= 0)
         {
             /* Update current entry into page table. */
-            Mmu->entry = index + PageCount;
+            Mmu->entry = index + (gctUINT32)PageCount;
 
             /* Return pointer to page table. */
             *PageTable = (gctUINT32 *)  Mmu->pageTableLogical + index;

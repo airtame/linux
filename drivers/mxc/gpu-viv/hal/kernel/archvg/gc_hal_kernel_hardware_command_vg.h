@@ -1,20 +1,54 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2013 by Vivante Corp.
+*    The MIT License (MIT)
 *
-*    This program is free software; you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation; either version 2 of the license, or
-*    (at your option) any later version.
+*    Copyright (c) 2014 - 2016 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2016 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
 *
 *    This program is distributed in the hope that it will be useful,
 *    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *    GNU General Public License for more details.
 *
 *    You should have received a copy of the GNU General Public License
-*    along with this program; if not write to the Free Software
-*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
 *
 *****************************************************************************/
 
@@ -254,8 +288,8 @@ gckVGCOMMAND_StateCommand(
     IN gctUINT32 Pipe,
     IN gctPOINTER Logical,
     IN gctUINT32 Address,
-    IN gctSIZE_T Count,
-    IN OUT gctSIZE_T * Bytes
+    IN gctUINT32 Count,
+    IN OUT gctUINT32 * Bytes
     );
 
 /* Form a RESTART command at the specified location in the command buffer. */
@@ -265,7 +299,7 @@ gckVGCOMMAND_RestartCommand(
     IN gctPOINTER Logical,
     IN gctUINT32 FetchAddress,
     IN gctUINT FetchCount,
-    IN OUT gctSIZE_T * Bytes
+    IN OUT gctUINT32 * Bytes
     );
 
 /* Form a FETCH command at the specified location in the command buffer. */
@@ -275,7 +309,7 @@ gckVGCOMMAND_FetchCommand(
     IN gctPOINTER Logical,
     IN gctUINT32 FetchAddress,
     IN gctUINT FetchCount,
-    IN OUT gctSIZE_T * Bytes
+    IN OUT gctUINT32 * Bytes
     );
 
 /* Form a CALL command at the specified location in the command buffer. */
@@ -285,7 +319,7 @@ gckVGCOMMAND_CallCommand(
     IN gctPOINTER Logical,
     IN gctUINT32 FetchAddress,
     IN gctUINT FetchCount,
-    IN OUT gctSIZE_T * Bytes
+    IN OUT gctUINT32 * Bytes
     );
 
 /* Form a RETURN command at the specified location in the command buffer. */
@@ -293,7 +327,7 @@ gceSTATUS
 gckVGCOMMAND_ReturnCommand(
     IN gckVGCOMMAND Command,
     IN gctPOINTER Logical,
-    IN OUT gctSIZE_T * Bytes
+    IN OUT gctUINT32 * Bytes
     );
 
 /* Form an EVENT command at the specified location in the command buffer. */
@@ -303,7 +337,7 @@ gckVGCOMMAND_EventCommand(
     IN gctPOINTER Logical,
     IN gceBLOCK Block,
     IN gctINT32 InterruptId,
-    IN OUT gctSIZE_T * Bytes
+    IN OUT gctUINT32 * Bytes
     );
 
 /* Form an END command at the specified location in the command buffer. */
@@ -312,7 +346,7 @@ gckVGCOMMAND_EndCommand(
     IN gckVGCOMMAND Command,
     IN gctPOINTER Logical,
     IN gctINT32 InterruptId,
-    IN OUT gctSIZE_T * Bytes
+    IN OUT gctUINT32 * Bytes
     );
 
 #endif  /* __gc_hal_kernel_hardware_command_h_ */

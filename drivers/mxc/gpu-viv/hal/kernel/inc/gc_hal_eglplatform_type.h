@@ -1,20 +1,54 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2013 by Vivante Corp.
+*    The MIT License (MIT)
 *
-*    This program is free software; you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation; either version 2 of the license, or
-*    (at your option) any later version.
+*    Copyright (c) 2014 - 2016 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2016 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
 *
 *    This program is distributed in the hope that it will be useful,
 *    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *    GNU General Public License for more details.
 *
 *    You should have received a copy of the GNU General Public License
-*    along with this program; if not write to the Free Software
-*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
 *
 *****************************************************************************/
 
@@ -32,20 +66,20 @@ extern "C" {
 
 typedef enum _halEventType
 {
-	/* Keyboard event. */
+    /* Keyboard event. */
     HAL_KEYBOARD,
 
-	/* Mouse move event. */
+    /* Mouse move event. */
     HAL_POINTER,
 
-	/* Mouse button event. */
+    /* Mouse button event. */
     HAL_BUTTON,
 
-	/* Application close event. */
-	HAL_CLOSE,
+    /* Application close event. */
+    HAL_CLOSE,
 
-	/* Application window has been updated. */
-	HAL_WINDOW_UPDATE
+    /* Application window has been updated. */
+    HAL_WINDOW_UPDATE
 }
 halEventType;
 
@@ -171,10 +205,10 @@ halKeys;
 /* Structure that defined keyboard mapping. */
 typedef struct _halKeyMap
 {
-	/* Normal key. */
+    /* Normal key. */
     halKeys normal;
 
-	/* Extended key. */
+    /* Extended key. */
     halKeys extended;
 }
 halKeyMap;
@@ -182,56 +216,78 @@ halKeyMap;
 /* Event structure. */
 typedef struct _halEvent
 {
-	/* Event type. */
+    /* Event type. */
     halEventType type;
 
-	/* Event data union. */
+    /* Event data union. */
     union _halEventData
     {
-		/* Event data for keyboard. */
+        /* Event data for keyboard. */
         struct _halKeyboard
         {
-			/* Scancode. */
-            halKeys	scancode;
+            /* Scancode. */
+            halKeys scancode;
 
-			/* ASCII characte of the key pressed. */
-            char	key;
+            /* ASCII characte of the key pressed. */
+            char    key;
 
-			/* Flag whether the key was pressed (1) or released (0). */
-            char	pressed;
+            /* Flag whether the key was pressed (1) or released (0). */
+            char    pressed;
         }
         keyboard;
 
-		/* Event data for pointer. */
+        /* Event data for pointer. */
         struct _halPointer
         {
-			/* Current pointer coordinate. */
-            int		x;
-            int		y;
+            /* Current pointer coordinate. */
+            int     x;
+            int     y;
         }
         pointer;
 
-		/* Event data for mouse buttons. */
+        /* Event data for mouse buttons. */
         struct _halButton
         {
-			/* Left button state. */
-            int		left;
+            /* Left button state. */
+            int     left;
 
-			/* Middle button state. */
-            int		middle;
+            /* Middle button state. */
+            int     middle;
 
-			/* Right button state. */
-            int		right;
+            /* Right button state. */
+            int     right;
 
-			/* Current pointer coordinate. */
-			int		x;
-			int		y;
+            /* Current pointer coordinate. */
+            int     x;
+            int     y;
         }
         button;
     }
     data;
 }
 halEvent;
+
+/* Tiling layouts. */
+typedef enum _halTiling
+{
+    HAL_INVALIDTILED = 0x0,         /* Invalid tiling */
+    /* Tiling basic modes enum'ed in power of 2. */
+    HAL_LINEAR       = 0x1,         /* No    tiling. */
+    HAL_TILED        = 0x2,         /* 4x4   tiling. */
+    HAL_SUPERTILED   = 0x4,         /* 64x64 tiling. */
+    HAL_MINORTILED   = 0x8,         /* 2x2   tiling. */
+
+    /* Tiling special layouts. */
+    HAL_TILING_SPLIT_BUFFER = 0x100,
+
+    /* Tiling combination layouts. */
+    HAL_MULTI_TILED      = HAL_TILED
+                         | HAL_TILING_SPLIT_BUFFER,
+
+    HAL_MULTI_SUPERTILED = HAL_SUPERTILED
+                         | HAL_TILING_SPLIT_BUFFER,
+}
+halTiling;
 
 /* VFK_DISPLAY_INFO structure defining information returned by
    vdkGetDisplayInfoEx. */
@@ -245,6 +301,9 @@ typedef struct _halDISPLAY_INFO
     ** for the specified display.*/
     int                         stride;
 
+    /* The tiling layout of the display. */
+    int                         tiling;
+
     /* The color depth of the display in bits per pixel. */
     int                         bitsPerPixel;
 
@@ -256,13 +315,12 @@ typedef struct _halDISPLAY_INFO
     ** if the address is not known for the specified display. */
     unsigned long               physical;
 
-    int                wrapFB;   /* true if compositor, false otherwise. */
+    /* True if requires buffer wrapping. */
+    int                         wrapFB;
 
-#ifndef __QNXNTO__
-    /* 355_FB_MULTI_BUFFER */
-    int                      multiBuffer;
-    int                      backBufferY;
-#endif
+    /* FB_MULTI_BUFFER */
+    int                         multiBuffer;
+    int                         backBufferY;
 
     /* The color info of the display. */
     unsigned int                alphaLength;
