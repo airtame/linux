@@ -1427,7 +1427,9 @@ static void reg_set_request_processed(void)
 		need_more_processing = true;
 	spin_unlock(&reg_requests_lock);
 
+#ifndef CONFIG_AIRTAME_WLAN
 	if (lr->initiator == NL80211_REGDOM_SET_BY_USER)
+#endif /* CONFIG_AIRTAME_WLAN */
 		cancel_delayed_work(&reg_timeout);
 
 	if (need_more_processing)
@@ -1554,7 +1556,14 @@ static void reg_process_hint(struct regulatory_request *reg_request,
 			wiphy_update_regulatory(wiphy, reg_initiator);
 		break;
 	default:
+#ifndef CONFIG_AIRTAME_WLAN
+	/*
+	 * Regulatory update may fail also from the core or a driver,
+	 * depending on /usr/sbin/crda call results. Try to reset everything back,
+	 * if this call fails for every initiator.
+	 */
 		if (reg_initiator == NL80211_REGDOM_SET_BY_USER)
+#endif /* CONFIG_AIRTAME_WLAN */
 			schedule_delayed_work(&reg_timeout,
 					      msecs_to_jiffies(3142));
 		break;
@@ -1872,8 +1881,11 @@ static void restore_regulatory_settings(bool reset_user)
 	 */
 	spin_lock(&reg_requests_lock);
 	list_for_each_entry_safe(reg_request, tmp, &reg_requests_list, list) {
+#ifndef CONFIG_AIRTAME_WLAN
+		/* Don't ignore other req requests (from a driver, for example) */
 		if (reg_request->initiator != NL80211_REGDOM_SET_BY_USER)
 			continue;
+#endif /* CONFIG_AIRTAME_WLAN */
 		list_move_tail(&reg_request->list, &tmp_reg_req_list);
 	}
 	spin_unlock(&reg_requests_lock);
@@ -1900,7 +1912,15 @@ static void restore_regulatory_settings(bool reset_user)
 			restore_custom_reg_settings(&rdev->wiphy);
 	}
 
-	regulatory_hint_core(world_alpha2);
+#ifdef CONFIG_AIRTAME_WLAN
+	/*
+	 * Don't queue World reg req if the queue isn't empty
+	 * We don't want to reset back, knowing we have pending
+	 * request which may succeed.
+	 */
+	if (list_empty(&tmp_reg_req_list))
+#endif /* CONFIG_AIRTAME_WLAN */
+		regulatory_hint_core(world_alpha2);
 
 	/*
 	 * This restores the ieee80211_regdom module parameter
