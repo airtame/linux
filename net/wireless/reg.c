@@ -1554,7 +1554,14 @@ static void reg_process_hint(struct regulatory_request *reg_request,
 			wiphy_update_regulatory(wiphy, reg_initiator);
 		break;
 	default:
+#ifndef CONFIG_AIRTAME_WLAN
+	/*
+	 * Regulatory update may fail also from the core or a driver,
+	 * depending on /usr/sbin/crda call results. Try to reset everything back,
+	 * if this call fails for every initiator.
+	 */
 		if (reg_initiator == NL80211_REGDOM_SET_BY_USER)
+#endif /* CONFIG_AIRTAME_WLAN */
 			schedule_delayed_work(&reg_timeout,
 					      msecs_to_jiffies(3142));
 		break;
