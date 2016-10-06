@@ -26,8 +26,6 @@
  * for more details.
  *
  */
- #define DEBUG  /* define this for verbose EDID parsing output */
-
 #include <linux/fb.h>
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -45,6 +43,7 @@
  * EDID parser
  */
 
+#undef DEBUG  /* define this for verbose EDID parsing output */
 
 #ifdef DEBUG
 #define DPRINTK(fmt, args...) printk(fmt,## args)

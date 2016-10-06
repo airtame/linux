@@ -26,9 +26,6 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
-
-#define DEBUG
-
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -165,8 +162,6 @@ struct mxc_hdmi {
 
 	struct hdmi_data_info hdmi_data;
 	int vic;
-	int dmt_vic;
-	int standard_vic;
 	struct mxc_edid_cfg edid_cfg;
 	u8 edid[HDMI_EDID_LEN];
 	bool fb_reg;
@@ -201,10 +196,7 @@ struct mxc_hdmi *g_hdmi;
 static bool hdmi_inited;
 static bool hdcp_init;
 
-extern const struct fb_videomode mxc_cea_mode[65];
-extern const struct dmt_videomode mxc_dmt_modes[MXC_DMT_MODEDB_SIZE];
-extern const struct fb_videomode mxc_standard_modes[MXC_STANDARD_MODEDB_SIZE];
-
+extern const struct fb_videomode mxc_cea_mode[64];
 extern void mxc_hdmi_cec_handle(u16 cec_stat);
 
 static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event);
@@ -1813,7 +1805,6 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 {
 	int i;
 	struct fb_videomode *mode;
-	int dmt_vic,cea_vic,standard_vic;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
@@ -1826,30 +1817,14 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		/*
 		 * We might check here if mode is supported by HDMI.
 		 * We do not currently support interlaced modes.
-		 * And add CEA and DMT modes in the modelist.
+		 * And add CEA modes in the modelist.
 		 */
 		mode = &hdmi->fbi->monspecs.modedb[i];
-		dmt_vic = 0;
-		standard_vic = 0;
-		cea_vic = mxc_edid_to_vic(mode,CEA_GROUP_MODE);
-		if (!cea_vic) {
-			dmt_vic = mxc_edid_to_vic(mode,DMT_GROUP_MODE);
-			if (!dmt_vic)
-				standard_vic = mxc_edid_to_vic(mode,STANDARD_GROUP_MODE);
-		}
+
 		if (!(mode->vmode & FB_VMODE_INTERLACED) &&
-				((cea_vic !=0 ) || (dmt_vic != 0) || (standard_vic != 0))) {
+				(mxc_edid_mode_to_vic(mode) != 0)) {
 
 			dev_dbg(&hdmi->pdev->dev, "Added mode %d:", i);
-			if (cea_vic) {
-				dev_info(&hdmi->pdev->dev,"%s: Added CEA mode %d(VIC %u):",__func__,i,cea_vic);
-			}
-			if (dmt_vic != 0) {
-				dev_info(&hdmi->pdev->dev,"%s: Added DMT mode %d(VIC %u):",__func__,i,dmt_vic);
-			}
-			if (standard_vic != 0)  {
-				dev_info(&hdmi->pdev->dev,"%s: Added STANDARD mode %d(VIC %u):",__func__,i,standard_vic);
-			}
 			dev_dbg(&hdmi->pdev->dev,
 				"xres = %d, yres = %d, freq = %d, vmode = %d, flag = %d\n",
 				hdmi->fbi->monspecs.modedb[i].xres,
@@ -2189,7 +2164,6 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 	dev_dbg(&hdmi->pdev->dev, "%s - video mode changed\n", __func__);
 
 	hdmi->vic = 0;
-	hdmi->dmt_vic = 0;
 	if (!hdmi->requesting_vga_for_initialization) {
 		/* Save mode if this isn't the result of requesting
 		 * vga default. */
@@ -2201,42 +2175,18 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 			dump_fb_videomode((struct fb_videomode *)edid_mode);
 			/* update fbi mode */
 			hdmi->fbi->mode = (struct fb_videomode *)edid_mode;
-			hdmi->vic = mxc_edid_to_vic(edid_mode,CEA_GROUP_MODE);
-			if (!hdmi->vic)
-				hdmi->dmt_vic = mxc_edid_to_vic(edid_mode,DMT_GROUP_MODE);
-			if (!hdmi->dmt_vic)
-				hdmi->standard_vic = mxc_edid_to_vic(edid_mode,STANDARD_GROUP_MODE);
+			hdmi->vic = mxc_edid_mode_to_vic(edid_mode);
 		}
 	}
 
 	hdmi_disable_overflow_interrupts();
 
+	dev_dbg(&hdmi->pdev->dev, "CEA mode used vic=%d\n", hdmi->vic);
 	if (hdmi->edid_cfg.hdmi_cap)
 		hdmi->hdmi_data.video_mode.mDVI = false;
 	else {
+		dev_dbg(&hdmi->pdev->dev, "CEA mode vic=%d work in DVI\n", hdmi->vic);
 		hdmi->hdmi_data.video_mode.mDVI = true;
-	}
-	if (hdmi->vic != 0) {
-		if (!hdmi->hdmi_data.video_mode.mDVI)
-			dev_dbg(&hdmi->pdev->dev, "CEA mode used vic=%d\n", hdmi->vic);
-		else
-			dev_dbg(&hdmi->pdev->dev, "CEA mode vic=%d work in DVI\n", hdmi->vic);
-	}
-	else
-	 if (hdmi->dmt_vic != 0) {
-		if (!hdmi->hdmi_data.video_mode.mDVI)
-			dev_dbg(&hdmi->pdev->dev, "DMT mode used vic=%d\n", hdmi->dmt_vic);
-		else {
-			dev_dbg(&hdmi->pdev->dev, "DMT mode vic=%d work in DVI\n", hdmi->dmt_vic);
-		}
-	}
-	else
-		if (hdmi->standard_vic != 0) {
-			if (!hdmi->hdmi_data.video_mode.mDVI)
-				dev_dbg(&hdmi->pdev->dev, "STANDARD mode used vic=%d\n", hdmi->standard_vic);
-			else {
-				dev_dbg(&hdmi->pdev->dev, "STANDARD mode vic=%d work in DVI\n", hdmi->standard_vic);
-			}
 	}
 
 	if ((hdmi->vic == 6) || (hdmi->vic == 7) ||
@@ -2621,23 +2571,6 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0))
 			fb_add_videomode(mode, &hdmi->fbi->modelist);
 	}
-
-	/*Add all the non-interlaced DMT modes to the default modelist*/
-	for (i = 0; i < ARRAY_SIZE(mxc_dmt_modes); i++) {
-		if (mxc_dmt_modes[i].mode != NULL) {
-		mode = mxc_dmt_modes[i].mode;
-		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0))
-			fb_add_videomode(mode, &hdmi->fbi->modelist);
-		}
-	}
-
-	/*Add all the non-interlaced standard modes to the default modelist*/
-	for (i = 0; i < ARRAY_SIZE(mxc_standard_modes); i++) {
-		mode = &mxc_standard_modes[i];
-		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0))
-			fb_add_videomode(mode, &hdmi->fbi->modelist);
-	}
-
 
 	console_unlock();
 
