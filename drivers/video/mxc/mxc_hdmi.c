@@ -26,6 +26,8 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+
+#define DEBUG
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -196,7 +198,7 @@ struct mxc_hdmi *g_hdmi;
 static bool hdmi_inited;
 static bool hdcp_init;
 
-extern const struct fb_videomode mxc_cea_mode[64];
+extern const struct fb_videomode mxc_cea_mode[65];
 extern void mxc_hdmi_cec_handle(u16 cec_stat);
 
 static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event);
@@ -1813,6 +1815,8 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 	fb_destroy_modelist(&hdmi->fbi->modelist);
 	fb_add_videomode(&vga_mode, &hdmi->fbi->modelist);
 
+	dev_dbg(&hdmi->pdev->dev, "Monspecs modedb lenght: %d\n", hdmi->fbi->monspecs.modedb_len);
+
 	for (i = 0; i < hdmi->fbi->monspecs.modedb_len; i++) {
 		/*
 		 * We might check here if mode is supported by HDMI.
@@ -1821,19 +1825,40 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		 */
 		mode = &hdmi->fbi->monspecs.modedb[i];
 
-		if (!(mode->vmode & FB_VMODE_INTERLACED) &&
-				(mxc_edid_mode_to_vic(mode) != 0)) {
+		if (!(mode->vmode & FB_VMODE_INTERLACED)) {
 
-			dev_dbg(&hdmi->pdev->dev, "Added mode %d:", i);
-			dev_dbg(&hdmi->pdev->dev,
+			struct fb_var_screeninfo var;
+			fb_videomode_to_var(&var, mode);
+
+			if ( (fb_validate_mode(&var, hdmi->fbi)) != -EINVAL) {
+				fb_add_videomode(mode, &hdmi->fbi->modelist);
+				dev_dbg(&hdmi->pdev->dev, "Added mode %d:", i);
+				dev_dbg(&hdmi->pdev->dev,
 				"xres = %d, yres = %d, freq = %d, vmode = %d, flag = %d\n",
 				hdmi->fbi->monspecs.modedb[i].xres,
 				hdmi->fbi->monspecs.modedb[i].yres,
 				hdmi->fbi->monspecs.modedb[i].refresh,
 				hdmi->fbi->monspecs.modedb[i].vmode,
 				hdmi->fbi->monspecs.modedb[i].flag);
-
-			fb_add_videomode(mode, &hdmi->fbi->modelist);
+			}
+			else {
+				dev_dbg(&hdmi->pdev->dev,
+				"Mode xres = %d, yres = %d, freq = %d, vmode = %d, flag = %d is not valid\n",
+				hdmi->fbi->monspecs.modedb[i].xres,
+				hdmi->fbi->monspecs.modedb[i].yres,
+				hdmi->fbi->monspecs.modedb[i].refresh,
+				hdmi->fbi->monspecs.modedb[i].vmode,
+				hdmi->fbi->monspecs.modedb[i].flag);
+			}
+		}
+		else {
+				dev_dbg(&hdmi->pdev->dev,
+				"Mode xres = %d, yres = %d, freq = %d, vmode = %d, flag = %d is interlaced\n",
+				hdmi->fbi->monspecs.modedb[i].xres,
+				hdmi->fbi->monspecs.modedb[i].yres,
+				hdmi->fbi->monspecs.modedb[i].refresh,
+				hdmi->fbi->monspecs.modedb[i].vmode,
+				hdmi->fbi->monspecs.modedb[i].flag);
 		}
 	}
 
