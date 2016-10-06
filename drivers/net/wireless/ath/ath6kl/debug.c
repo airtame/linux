@@ -1785,7 +1785,7 @@ int ath6kl_debug_init_fs(struct ath6kl *ar)
 	if (!ar->debugfs_phy)
 		return -ENOMEM;
 
-	debugfs_create_file("tgt_stats", S_IRUSR, ar->debugfs_phy, ar,
+	debugfs_create_file("tgt_stats", S_IRUSR | S_IRGRP | S_IROTH, ar->debugfs_phy, ar,
 			    &fops_tgt_stats);
 
 	if (ar->hif_type == ATH6KL_HIF_TYPE_SDIO)
@@ -1820,7 +1820,7 @@ int ath6kl_debug_init_fs(struct ath6kl *ar)
 	debugfs_create_file("war_stats", S_IRUSR, ar->debugfs_phy, ar,
 			    &fops_war_stats);
 
-	debugfs_create_file("roam_table", S_IRUSR, ar->debugfs_phy, ar,
+	debugfs_create_file("roam_table", S_IRUSR | S_IRGRP | S_IROTH, ar->debugfs_phy, ar,
 			    &fops_roam_table);
 
 	debugfs_create_file("force_roam", S_IWUSR, ar->debugfs_phy, ar,
