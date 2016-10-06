@@ -32,11 +32,6 @@
 #define FB_VMODE_ASPECT_16_9	0x20
 #define FB_VMODE_ASPECT_MASK	(FB_VMODE_ASPECT_4_3 | FB_VMODE_ASPECT_16_9)
 
-
-#define MXC_VESA_MODEDB_SIZE 0x2B
-#define MXC_DMT_MODEDB_SIZE  0x50
-#define MXC_STANDARD_MODEDB_SIZE 0x3E
-
 enum cea_audio_coding_types {
 	AUDIO_CODING_TYPE_REF_STREAM_HEADER	=  0,
 	AUDIO_CODING_TYPE_LPCM			=  1,
@@ -54,12 +49,6 @@ enum cea_audio_coding_types {
 	AUDIO_CODING_TYPE_DST			= 13,
 	AUDIO_CODING_TYPE_WMAPRO		= 14,
 	AUDIO_CODING_TYPE_RESERVED		= 15,
-};
-
-enum video_group_modes {
-	STANDARD_GROUP_MODE = 0,
-	CEA_GROUP_MODE = 1,
-	DMT_GROUP_MODE =2,
 };
 
 struct mxc_hdmi_3d_format {
@@ -108,7 +97,7 @@ struct mxc_edid_cfg {
 };
 
 int mxc_edid_var_to_vic(struct fb_var_screeninfo *var);
-int mxc_edid_to_vic(const struct fb_videomode *mode, const int video_group);
+int mxc_edid_mode_to_vic(const struct fb_videomode *mode);
 int mxc_edid_read(struct i2c_adapter *adp, unsigned short addr,
 	unsigned char *edid, struct mxc_edid_cfg *cfg, struct fb_info *fbi);
 int mxc_edid_parse_ext_blk(unsigned char *edid, struct mxc_edid_cfg *cfg,
