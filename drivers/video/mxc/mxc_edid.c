@@ -31,156 +31,473 @@
 #include <video/mxc_edid.h>
 #include "../edid.h"
 
-#undef DEBUG  /* define this for verbose EDID parsing output */
+#define DEBUG  /* define this for verbose EDID parsing output */
 #ifdef DEBUG
 #define DPRINTK(fmt, args...) printk(fmt, ## args)
 #else
 #define DPRINTK(fmt, args...)
 #endif
 
-const struct fb_videomode mxc_cea_mode[64] = {
-	/* #1: 640x480p@59.94/60Hz 4:3 */
-	[1] = {
-		NULL, 60, 640, 480, 39722, 48, 16, 33, 10, 96, 2, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3, 0,
-	},
-	/* #2: 720x480p@59.94/60Hz 4:3 */
-	[2] = {
-		NULL, 60, 720, 480, 37037, 60, 16, 30, 9, 62, 6, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3, 0,
-	},
-	/* #3: 720x480p@59.94/60Hz 16:9 */
-	[3] = {
-		NULL, 60, 720, 480, 37037, 60, 16, 30, 9, 62, 6, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #4: 1280x720p@59.94/60Hz 16:9 */
-	[4] = {
-		NULL, 60, 1280, 720, 13468, 220, 110, 20, 5, 40, 5,
-		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0
-	},
-	/* #5: 1920x1080i@59.94/60Hz 16:9 */
-	[5] = {
-		NULL, 60, 1920, 1080, 13763, 148, 88, 15, 2, 44, 5,
-		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-		FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #6: 720(1440)x480iH@59.94/60Hz 4:3 */
-	[6] = {
-		NULL, 60, 1440, 480, 18554/*37108*/, 114, 38, 15, 4, 124, 3, 0,
-		FB_VMODE_INTERLACED | FB_VMODE_ASPECT_4_3, 0,
-	},
-	/* #7: 720(1440)x480iH@59.94/60Hz 16:9 */
-	[7] = {
-		NULL, 60, 1440, 480, 18554/*37108*/, 114, 38, 15, 4, 124, 3, 0,
-		FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #8: 720(1440)x240pH@59.94/60Hz 4:3 */
-	[8] = {
-		NULL, 60, 1440, 240, 37108, 114, 38, 15, 4, 124, 3, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3, 0,
-	},
-	/* #9: 720(1440)x240pH@59.94/60Hz 16:9 */
-	[9] = {
-		NULL, 60, 1440, 240, 37108, 114, 38, 15, 4, 124, 3, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #14: 1440x480p@59.94/60Hz 4:3 */
-	[14] = {
-		NULL, 60, 1440, 480, 18500, 120, 32, 30, 9, 124, 6, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3, 0,
-	},
-	/* #15: 1440x480p@59.94/60Hz 16:9 */
-	[15] = {
-		NULL, 60, 1440, 480, 18500, 120, 32, 30, 9, 124, 6, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #16: 1920x1080p@60Hz 16:9 */
-	[16] = {
-		NULL, 60, 1920, 1080, 6734, 148, 88, 36, 4, 44, 5,
-		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #17: 720x576pH@50Hz 4:3 */
-	[17] = {
-		NULL, 50, 720, 576, 37037, 68, 12, 39, 5, 64, 5, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3, 0,
-	},
-	/* #18: 720x576pH@50Hz 16:9 */
-	[18] = {
-		NULL, 50, 720, 576, 37037, 68, 12, 39, 5, 64, 5, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #19: 1280x720p@50Hz */
-	[19] = {
-		NULL, 50, 1280, 720, 13468, 220, 440, 20, 5, 40, 5,
-		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #20: 1920x1080i@50Hz */
-	[20] = {
-		NULL, 50, 1920, 1080, 13480, 148, 528, 15, 5, 528, 5,
-		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-		FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #23: 720(1440)x288pH@50Hz 4:3 */
-	[23] = {
-		NULL, 50, 1440, 288, 37037, 138, 24, 19, 2, 126, 3, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3, 0,
-	},
-	/* #24: 720(1440)x288pH@50Hz 16:9 */
-	[24] = {
-		NULL, 50, 1440, 288, 37037, 138, 24, 19, 2, 126, 3, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #29: 720(1440)x576pH@50Hz 4:3 */
-	[29] = {
-		NULL, 50, 1440, 576, 18518, 136, 24, 39, 5, 128, 5, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3, 0,
-	},
-	/* #30: 720(1440)x576pH@50Hz 16:9 */
-	[30] = {
-		NULL, 50, 1440, 576, 18518, 136, 24, 39, 5, 128, 5, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #31: 1920x1080p@50Hz */
-	[31] = {
-		NULL, 50, 1920, 1080, 6734, 148, 528, 36, 4, 44, 5,
-		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #32: 1920x1080p@23.98/24Hz */
-	[32] = {
-		NULL, 24, 1920, 1080, 13468, 148, 638, 36, 4, 44, 5,
-		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #33: 1920x1080p@25Hz */
-	[33] = {
-		NULL, 25, 1920, 1080, 13468, 148, 528, 36, 4, 44, 5,
-		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #34: 1920x1080p@30Hz */
-	[34] = {
-		NULL, 30, 1920, 1080, 13468, 148, 88, 36, 4, 44, 5,
-		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0,
-	},
-	/* #41: 1280x720p@100Hz 16:9 */
-	[41] = {
-		NULL, 100, 1280, 720, 6734, 220, 440, 20, 5, 40, 5,
-		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0
-	},
-	/* #47: 1280x720p@119.88/120Hz 16:9 */
-	[47] = {
-		NULL, 120, 1280, 720, 6734, 220, 110, 20, 5, 40, 5,
-		FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9, 0
-	},
+/* set of default timings for TVs*/
+/* CEA modes databes created from the patch at:
++https://git.replicant.us/replicant/kernel_samsung_tuna/commit/825b424987f7ca8f7cdd3996e2d1c5d77674e528.patch */
+const struct fb_videomode mxc_cea_mode[65] = {
+	{},
+	/* 1: 640x480p @ 59.94Hz/60Hz */
+	{.refresh = 59, .xres = 640, .yres = 480, .pixclock = 39721,
+	 .left_margin = 48, .right_margin = 16,
+	 .upper_margin = 33, .lower_margin = 1,
+	 .hsync_len = 96, .vsync_len = 2,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 2: 720x480p @ 59.94Hz/60Hz 4:3 */
+	{.refresh = 59, .xres = 720, .yres = 480, .pixclock = 37037,
+	 .left_margin = 60, .right_margin = 16,
+	 .upper_margin = 30, .lower_margin = 9,
+	 .hsync_len = 62, .vsync_len = 6,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 3: 720x480p @ 59.94Hz/60Hz 16:9 */
+	{.refresh = 59, .xres = 720, .yres = 480, .pixclock = 37037,
+	 .left_margin = 60, .right_margin = 16,
+	 .upper_margin = 30, .lower_margin = 9,
+	 .hsync_len = 62, .vsync_len = 6,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 4: 1280x720p @ 59.94Hz/60Hz */
+	{.refresh = 60, .xres = 1280, .yres = 720, .pixclock = 13468,
+	 .left_margin = 220, .right_margin = 110,
+	 .upper_margin = 20, .lower_margin = 5,
+	 .hsync_len = 40, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 5: 1920x1080i @ 59.94Hz/60Hz */
+	{.refresh = 60, .xres = 1920, .yres = 1080, .pixclock = 13468,
+	 .left_margin = 148, .right_margin = 88,
+	 .upper_margin = 15, .lower_margin = 2,
+	 .hsync_len = 44, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9 },
+	/* 6: 720(1440)x480i @ 59.94Hz/60Hz 4:3*/
+	{.refresh = 59, .xres = 1440, .yres = 480, .pixclock = 37037,
+	 .left_margin = 114, .right_margin = 38,
+	 .upper_margin = 15, .lower_margin = 4,
+	 .hsync_len = 124, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 7: 720(1440)x480i @ 59.94Hz/60Hz 16:9 */
+	{.refresh = 59, .xres = 1440, .yres = 480, .pixclock = 37037,
+	 .left_margin = 114, .right_margin = 38,
+	 .upper_margin = 15, .lower_margin = 4,
+	 .hsync_len = 124, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 8: 720(1440)x240p @ 59.94Hz/60Hz 4:3 */
+	{.refresh = 59, .xres = 1440, .yres = 240, .pixclock = 37037,
+	 .left_margin = 114, .right_margin = 38,
+	 .upper_margin = 15, .lower_margin = 5,
+	 .hsync_len = 124, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 9: 720(1440)x240p @ 59.94Hz/60Hz 16:9 */
+	{.refresh = 59, .xres = 1440, .yres = 240, .pixclock = 37037,
+	 .left_margin = 114, .right_margin = 38,
+	 .upper_margin = 15, .lower_margin = 5,
+	 .hsync_len = 124, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 10: 2880x480i @ 59.94Hz/60Hz 4:3 */
+	{.refresh = 59, .xres = 2880, .yres = 480, .pixclock = 18518,
+	 .left_margin = 228, .right_margin = 76,
+	 .upper_margin = 15, .lower_margin = 4,
+	 .hsync_len = 248, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 11: 2880x480i @ 59.94Hz/60Hz 16:9 */
+	{.refresh = 59, .xres = 2880, .yres = 480, .pixclock = 18518,
+	 .left_margin = 228, .right_margin = 76,
+	 .upper_margin = 15, .lower_margin = 4,
+	 .hsync_len = 248, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 12: 2880x240p @ 59.94Hz/60Hz 4:3 */
+	{.refresh = 59, .xres = 2880, .yres = 240, .pixclock = 18518,
+	 .left_margin = 228, .right_margin = 76,
+	 .upper_margin = 15, .lower_margin = 5,
+	 .hsync_len = 248, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 13: 2880x240p @ 59.94Hz/60Hz 16:9 */
+	{.refresh = 59, .xres = 2880, .yres = 240, .pixclock = 18518,
+	 .left_margin = 228, .right_margin = 76,
+	 .upper_margin = 15, .lower_margin = 5,
+	 .hsync_len = 248, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 14: 1440x480p @ 59.94Hz/60Hz 4:3 */
+	{.refresh = 59, .xres = 1440, .yres = 480, .pixclock = 18518,
+	 .left_margin = 120, .right_margin = 32,
+	 .upper_margin = 30, .lower_margin = 9,
+	 .hsync_len = 124, .vsync_len = 6,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 15: 1440x480p @ 59.94Hz/60Hz 16:9 */
+	{.refresh = 59, .xres = 1440, .yres = 480, .pixclock = 18518,
+	 .left_margin = 120, .right_margin = 32,
+	 .upper_margin = 30, .lower_margin = 9,
+	 .hsync_len = 124, .vsync_len = 6,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 16: 1920x1080p @ 59.94Hz/60Hz */
+	{.refresh = 60, .xres = 1920, .yres = 1080, .pixclock = 6734,
+	 .left_margin = 148, .right_margin = 88,
+	 .upper_margin = 36, .lower_margin = 4,
+	 .hsync_len = 44, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 17: 720x576p @ 50Hz 4:3 */
+	{.refresh = 50, .xres = 720, .yres = 576, .pixclock = 37037,
+	 .left_margin = 68, .right_margin = 12,
+	 .upper_margin = 39, .lower_margin = 5,
+	 .hsync_len = 64, .vsync_len = 5,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 18: 720x576p @ 50Hz 16:9 */
+	{.refresh = 50, .xres = 720, .yres = 576, .pixclock = 37037,
+	 .left_margin = 68, .right_margin = 12,
+	 .upper_margin = 39, .lower_margin = 5,
+	 .hsync_len = 64, .vsync_len = 5,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 19: 1280x720p @ 50Hz */
+	{.refresh = 50, .xres = 1280, .yres = 720, .pixclock = 13468,
+	 .left_margin = 220, .right_margin = 440,
+	 .upper_margin = 20, .lower_margin = 5,
+	 .hsync_len = 40, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 20: 1920x1080i @ 50Hz */
+	{.refresh = 50, .xres = 1920, .yres = 1080, .pixclock = 13468,
+	 .left_margin = 148, .right_margin = 528,
+	 .upper_margin = 15, .lower_margin = 2,
+	 .hsync_len = 44, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 21: 720(1440)x576i @ 50Hz 4:3 */
+	{.refresh = 50, .xres = 1440, .yres = 576, .pixclock = 37037,
+	 .left_margin = 138, .right_margin = 24,
+	 .upper_margin = 19, .lower_margin = 2,
+	 .hsync_len = 126, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 22: 720(1440)x576i @ 50Hz 16:9 */
+	{.refresh = 50, .xres = 1440, .yres = 576, .pixclock = 37037,
+	 .left_margin = 138, .right_margin = 24,
+	 .upper_margin = 19, .lower_margin = 2,
+	 .hsync_len = 126, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 23: 720(1440)x288p @ 50Hz 4:3 */
+	{.refresh = 49, .xres = 1440, .yres = 288, .pixclock = 37037,
+	 .left_margin = 138, .right_margin = 24,
+	 .upper_margin = 19, .lower_margin = 4,
+	 .hsync_len = 126, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 24: 720(1440)x288p @ 50Hz 16:9 */
+	{.refresh = 49, .xres = 1440, .yres = 288, .pixclock = 37037,
+	 .left_margin = 138, .right_margin = 24,
+	 .upper_margin = 19, .lower_margin = 4,
+	 .hsync_len = 126, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 25: 2880x576i @ 50Hz 4:3*/
+	{.refresh = 50, .xres = 2880, .yres = 576, .pixclock = 18518,
+	 .left_margin = 276, .right_margin = 48,
+	 .upper_margin = 19, .lower_margin = 2,
+	 .hsync_len = 252, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 26: 2880x576i @ 50Hz 16:9 */
+	{.refresh = 50, .xres = 2880, .yres = 576, .pixclock = 18518,
+	 .left_margin = 276, .right_margin = 48,
+	 .upper_margin = 19, .lower_margin = 2,
+	 .hsync_len = 252, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 27: 2880x288p @ 50Hz 4:3 */
+	{.refresh = 49, .xres = 2880, .yres = 288, .pixclock = 18518,
+	 .left_margin = 276, .right_margin = 48,
+	 .upper_margin = 19, .lower_margin = 4,
+	 .hsync_len = 252, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 28: 2880x288p @ 50Hz 16:9 */
+	{.refresh = 49, .xres = 2880, .yres = 288, .pixclock = 18518,
+	 .left_margin = 276, .right_margin = 48,
+	 .upper_margin = 19, .lower_margin = 4,
+	 .hsync_len = 252, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 29: 1440x576p @ 50Hz 4:3 */
+	{.refresh = 50, .xres = 1440, .yres = 576, .pixclock = 18518,
+	 .left_margin = 136, .right_margin = 24,
+	 .upper_margin = 39, .lower_margin = 5,
+	 .hsync_len = 128, .vsync_len = 5,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 30: 1440x576p @ 50Hz 16:9 */
+	{.refresh = 50, .xres = 1440, .yres = 576, .pixclock = 18518,
+	 .left_margin = 136, .right_margin = 24,
+	 .upper_margin = 39, .lower_margin = 5,
+	 .hsync_len = 128, .vsync_len = 5,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 31: 1920x1080p @ 50Hz */
+	{.refresh = 50, .xres = 1920, .yres = 1080, .pixclock = 6734,
+	 .left_margin = 148, .right_margin = 528,
+	 .upper_margin = 36, .lower_margin = 4,
+	 .hsync_len = 44, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 32: 1920x1080p @ 23.97Hz/24Hz */
+	{.refresh = 24, .xres = 1920, .yres = 1080, .pixclock = 13468,
+	 .left_margin = 148, .right_margin = 638,
+	 .upper_margin = 36, .lower_margin = 4,
+	 .hsync_len = 44, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 33: 1920x1080p @ 25Hz */
+	{.refresh = 25, .xres = 1920, .yres = 1080, .pixclock = 13468,
+	 .left_margin = 148, .right_margin = 528,
+	 .upper_margin = 36, .lower_margin = 4,
+	 .hsync_len = 44, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 34: 1920x1080p @ 29.97Hz/30Hz */
+	{.refresh = 30, .xres = 1920, .yres = 1080, .pixclock = 13468,
+	 .left_margin = 148, .right_margin = 88,
+	 .upper_margin = 36, .lower_margin = 4,
+	 .hsync_len = 44, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 35: 2880x480p @ 59.94Hz/60Hz 4:3 */
+	{.refresh = 59, .xres = 2880, .yres = 480, .pixclock = 9259,
+	 .left_margin = 240, .right_margin = 64,
+	 .upper_margin = 30, .lower_margin = 9,
+	 .hsync_len = 248, .vsync_len = 6,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 36: 2880x480p @ 59.94Hz/60Hz 16:9 */
+	{.refresh = 59, .xres = 2880, .yres = 480, .pixclock = 9259,
+	 .left_margin = 240, .right_margin = 64,
+	 .upper_margin = 30, .lower_margin = 9,
+	 .hsync_len = 248, .vsync_len = 6,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 37: 2880x576p @ 50Hz 4:3 */
+	{.refresh = 50, .xres = 2880, .yres = 576, .pixclock = 9259,
+	 .left_margin = 272, .right_margin = 48,
+	 .upper_margin = 39, .lower_margin = 5,
+	 .hsync_len = 256, .vsync_len = 5,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 38: 2880x576p @ 50Hz 16:9 */
+	{.refresh = 50, .xres = 2880, .yres = 576, .pixclock = 9259,
+	 .left_margin = 272, .right_margin = 48,
+	 .upper_margin = 39, .lower_margin = 5,
+	 .hsync_len = 256, .vsync_len = 5,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 39: 1920x1080i @ 50Hz */
+	{.refresh = 50, .xres = 1920, .yres = 1080, .pixclock = 13888,
+	 .left_margin = 184, .right_margin = 32,
+	 .upper_margin = 57, .lower_margin = 2,
+	 .hsync_len = 168, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 40: 1920x1080i @ 100Hz */
+	{.refresh = 100, .xres = 1920, .yres = 1080, .pixclock = 6734,
+	 .left_margin = 148, .right_margin = 528,
+	 .upper_margin = 15, .lower_margin = 2,
+	 .hsync_len = 44, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 41: 1280x720p @ 100Hz */
+	{.refresh = 100, .xres = 1280, .yres = 720, .pixclock = 6734,
+	 .left_margin = 220, .right_margin = 440,
+	 .upper_margin = 20, .lower_margin = 5,
+	 .hsync_len = 40, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 42: 720x576p @ 100Hz 4:3 */
+	{.refresh = 100, .xres = 720, .yres = 576, .pixclock = 18518,
+	 .left_margin = 68, .right_margin = 12,
+	 .upper_margin = 39, .lower_margin = 5,
+	 .hsync_len = 64, .vsync_len = 5,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 43: 720x576p @ 100Hz 16:9 */
+	{.refresh = 100, .xres = 720, .yres = 576, .pixclock = 18518,
+	 .left_margin = 68, .right_margin = 12,
+	 .upper_margin = 39, .lower_margin = 5,
+	 .hsync_len = 64, .vsync_len = 5,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 44: 720(1440)x576i @ 100Hz 4:3 */
+	{.refresh = 100, .xres = 1440, .yres = 576, .pixclock = 18518,
+	 .left_margin = 138, .right_margin = 24,
+	 .upper_margin = 19, .lower_margin = 2,
+	 .hsync_len = 126, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 45: 720(1440)x576i @ 100Hz 16:9 */
+	{.refresh = 100, .xres = 1440, .yres = 576, .pixclock = 18518,
+	 .left_margin = 138, .right_margin = 24,
+	 .upper_margin = 19, .lower_margin = 2,
+	 .hsync_len = 126, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 46: 1920x1080i @ 119.88/120Hz */
+	{.refresh = 120, .xres = 1920, .yres = 1080, .pixclock = 6734,
+	 .left_margin = 148, .right_margin = 88,
+	 .upper_margin = 15, .lower_margin = 2,
+	 .hsync_len = 44, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 47: 1280x720p @ 119.88/120Hz */
+	{.refresh = 120, .xres = 1280, .yres = 720, .pixclock = 6734,
+	 .left_margin = 220, .right_margin = 110,
+	 .upper_margin = 20, .lower_margin = 5,
+	 .hsync_len = 40, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 48: 720x480p @ 119.88/120Hz 4:3 */
+	{.refresh = 119, .xres = 720, .yres = 480, .pixclock = 18518,
+	 .left_margin = 60, .right_margin = 16,
+	 .upper_margin = 30, .lower_margin = 9,
+	 .hsync_len = 62, .vsync_len = 6,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 49: 720x480p @ 119.88/120Hz 16:9 */
+	{.refresh = 119, .xres = 720, .yres = 480, .pixclock = 18518,
+	 .left_margin = 60, .right_margin = 16,
+	 .upper_margin = 30, .lower_margin = 9,
+	 .hsync_len = 62, .vsync_len = 6,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 50: 720(1440)x480i @ 119.88/120Hz 4:3*/
+	{.refresh = 119, .xres = 1440, .yres = 480, .pixclock = 18518,
+	 .left_margin = 114, .right_margin = 38,
+	 .upper_margin = 15, .lower_margin = 4,
+	 .hsync_len = 124, .vsync_len = 3,
+     .sync = 0,
+     .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 51: 720(1440)x480i @ 119.88/120Hz 16:9 */
+	{.refresh = 119, .xres = 1440, .yres = 480, .pixclock = 18518,
+	 .left_margin = 114, .right_margin = 38,
+	 .upper_margin = 15, .lower_margin = 4,
+	 .hsync_len = 124, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 52: 720x576p @ 200Hz 4:3 */
+	{.refresh = 200, .xres = 720, .yres = 576, .pixclock = 9259,
+	 .left_margin = 68, .right_margin = 12,
+	 .upper_margin = 39, .lower_margin = 5,
+	 .hsync_len = 64, .vsync_len = 5,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 53: 720x576p @ 200Hz 16:9  */
+	{.refresh = 200, .xres = 720, .yres = 576, .pixclock = 9259,
+	 .left_margin = 68, .right_margin = 12,
+	 .upper_margin = 39, .lower_margin = 5,
+	 .hsync_len = 64, .vsync_len = 5,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 54: 720(1440)x576i @ 200Hz 4:3 */
+	{.refresh = 200, .xres = 1440, .yres = 576, .pixclock = 9259,
+	 .left_margin = 138, .right_margin = 24,
+	 .upper_margin = 19, .lower_margin = 2,
+	 .hsync_len = 126, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 55: 720(1440)x576i @ 200Hz 16:9 */
+	{.refresh = 200, .xres = 1440, .yres = 576, .pixclock = 9259,
+	 .left_margin = 138, .right_margin = 24,
+	 .upper_margin = 19, .lower_margin = 2,
+	 .hsync_len = 126, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 56: 720x480p @ 239.76/240Hz 4:3 */
+	{.refresh = 239, .xres = 720, .yres = 480, .pixclock = 9259,
+	 .left_margin = 60, .right_margin = 16,
+	 .upper_margin = 30, .lower_margin = 9,
+	 .hsync_len = 62, .vsync_len = 6,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 57: 720x480p @ 239.76/240Hz 16:9 */
+	{.refresh = 239, .xres = 720, .yres = 480, .pixclock = 9259,
+	 .left_margin = 60, .right_margin = 16,
+	 .upper_margin = 30, .lower_margin = 9,
+	 .hsync_len = 62, .vsync_len = 6,
+	 .sync = 0,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 58: 720(1440)x480i @ 239.76/240Hz 4:3 */
+	{.refresh = 239, .xres = 1440, .yres = 480, .pixclock = 9259,
+	 .left_margin = 114, .right_margin = 38,
+	 .upper_margin = 15, .lower_margin = 4,
+	 .hsync_len = 124, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_4_3},
+	/* 59: 720(1440)x480i @ 239.76/240Hz  16:9 */
+	{.refresh = 239, .xres = 1440, .yres = 480, .pixclock = 9259,
+	 .left_margin = 114, .right_margin = 38,
+	 .upper_margin = 15, .lower_margin = 4,
+	 .hsync_len = 124, .vsync_len = 3,
+	 .sync = 0,
+	 .vmode = FB_VMODE_INTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 60: 1280x720p @ 23.97Hz/24Hz */
+	{.refresh = 24, .xres = 1280, .yres = 720, .pixclock = 16835,
+	 .left_margin = 220, .right_margin = 1760,
+	 .upper_margin = 20, .lower_margin = 5,
+	 .hsync_len = 40, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 61: 1280x720p @ 25Hz */
+	{.refresh = 25, .xres = 1280, .yres = 720, .pixclock = 13468,
+	 .left_margin = 220, .right_margin = 2420,
+	 .upper_margin = 20, .lower_margin = 5,
+	 .hsync_len = 40, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 62: 1280x720p @ 29.97Hz/30Hz */
+	{.refresh = 30, .xres = 1280, .yres = 720, .pixclock = 13468,
+	 .left_margin = 220, .right_margin = 1760,
+	 .upper_margin = 20, .lower_margin = 5,
+	 .hsync_len = 40, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 63: 1920x1080p @ 119.88/120Hz */
+	{.refresh = 120, .xres = 1920, .yres = 1080, .pixclock = 3367,
+	 .left_margin = 148, .right_margin = 88,
+	 .upper_margin = 36, .lower_margin = 4,
+	 .hsync_len = 44, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
+	/* 64: 1920x1080p @ 100Hz */
+	{.refresh = 100, .xres = 1920, .yres = 1080, .pixclock = 3367,
+	 .left_margin = 148, .right_margin = 528,
+	 .upper_margin = 36, .lower_margin = 4,
+	 .hsync_len = 44, .vsync_len = 5,
+	 .sync = FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
+	 .vmode = FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_16_9},
 };
+
+
+
+
+
+
 
 /*
  * We have a special version of fb_mode_is_equal that ignores
