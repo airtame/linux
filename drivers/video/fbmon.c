@@ -43,7 +43,7 @@
  * EDID parser
  */
 
-#undef DEBUG  /* define this for verbose EDID parsing output */
+#define DEBUG  /* define this for verbose EDID parsing output */
 
 #ifdef DEBUG
 #define DPRINTK(fmt, args...) printk(fmt,## args)
