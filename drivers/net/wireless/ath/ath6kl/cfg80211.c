@@ -820,13 +820,6 @@ void ath6kl_cfg80211_connect_event(struct ath6kl_vif *vif, u16 channel,
 					WLAN_STATUS_SUCCESS, GFP_KERNEL);
 		cfg80211_put_bss(ar->wiphy, bss);
 	} else if (vif->sme_state == SME_CONNECTED) {
-#ifdef AIRTAME_WLAN
-	  /*
-	   * FW sometimes asks us to roam to the same bssid (a bug?) we're connected to
-	   * Simply ignore this request.
-	   */
-          if (0 != memcmp(vif->bssid, bssid, ETH_ALEN))
-#endif /* AIRTAME_WLAN */
 		/* inform roam event to cfg80211 */
 		cfg80211_roamed_bss(vif->ndev, bss, assoc_req_ie, assoc_req_len,
 				    assoc_resp_ie, assoc_resp_len, GFP_KERNEL);
