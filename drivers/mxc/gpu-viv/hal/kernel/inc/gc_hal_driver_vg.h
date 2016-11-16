@@ -1,20 +1,54 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2013 by Vivante Corp.
+*    The MIT License (MIT)
 *
-*    This program is free software; you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation; either version 2 of the license, or
-*    (at your option) any later version.
+*    Copyright (c) 2014 - 2016 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2016 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
 *
 *    This program is distributed in the hope that it will be useful,
 *    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *    GNU General Public License for more details.
 *
 *    You should have received a copy of the GNU General Public License
-*    along with this program; if not write to the Free Software
-*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
 *
 *****************************************************************************/
 
@@ -56,37 +90,37 @@ typedef struct _gcsCOMMAND_BUFFER_INFO
 
     /* Alignment and mask for the buffer address. */
     gctUINT                     addressMask;
-    gctSIZE_T                   addressAlignment;
+    gctUINT32                    addressAlignment;
 
     /* Alignment for each command. */
-    gctSIZE_T                   commandAlignment;
+    gctUINT32                   commandAlignment;
 
     /* Number of bytes required by the STATE command. */
-    gctSIZE_T                   stateCommandSize;
+    gctUINT32                   stateCommandSize;
 
     /* Number of bytes required by the RESTART command. */
-    gctSIZE_T                   restartCommandSize;
+    gctUINT32                   restartCommandSize;
 
     /* Number of bytes required by the FETCH command. */
-    gctSIZE_T                   fetchCommandSize;
+    gctUINT32                   fetchCommandSize;
 
     /* Number of bytes required by the CALL command. */
-    gctSIZE_T                   callCommandSize;
+    gctUINT32                   callCommandSize;
 
     /* Number of bytes required by the RETURN command. */
-    gctSIZE_T                   returnCommandSize;
+    gctUINT32                   returnCommandSize;
 
     /* Number of bytes required by the EVENT command. */
-    gctSIZE_T                   eventCommandSize;
+    gctUINT32                   eventCommandSize;
 
     /* Number of bytes required by the END command. */
-    gctSIZE_T                   endCommandSize;
+    gctUINT32                   endCommandSize;
 
     /* Number of bytes reserved at the tail of a static command buffer. */
-    gctSIZE_T                   staticTailSize;
+    gctUINT32                   staticTailSize;
 
     /* Number of bytes reserved at the tail of a dynamic command buffer. */
-    gctSIZE_T                   dynamicTailSize;
+    gctUINT32                   dynamicTailSize;
 }
 gcsCOMMAND_BUFFER_INFO;
 
@@ -221,7 +255,7 @@ typedef struct _gcsTASK_FREE_VIDEO_MEMORY
     IN gceTASK                  id;
 
     /* Allocated video memory. */
-    IN gctUINT64                node;
+    IN gctUINT32                node;
 }
 gcsTASK_FREE_VIDEO_MEMORY;
 

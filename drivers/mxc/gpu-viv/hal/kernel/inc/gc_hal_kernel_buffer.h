@@ -1,27 +1,60 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2013 by Vivante Corp.
+*    The MIT License (MIT)
 *
-*    This program is free software; you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation; either version 2 of the license, or
-*    (at your option) any later version.
+*    Copyright (c) 2014 - 2016 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2016 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
 *
 *    This program is distributed in the hope that it will be useful,
 *    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *    GNU General Public License for more details.
 *
 *    You should have received a copy of the GNU General Public License
-*    along with this program; if not write to the Free Software
-*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
 *
 *****************************************************************************/
 
 
 #ifndef __gc_hal_kernel_buffer_h_
 #define __gc_hal_kernel_buffer_h_
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,11 +124,37 @@ typedef struct _gcsSTATE_DELTA
 }
 gcsSTATE_DELTA;
 
+/* Command buffer patch record. */
+struct _gcsPATCH
+{
+    /* Pointer within the buffer. */
+    gctUINT32_PTR               pointer;
+
+    /* 32-bit data to write at the specified offset. */
+    gctUINT32                   data;
+};
+
+/* List of patches for the command buffer. */
+struct _gcsPATCH_LIST
+{
+    /* Array of patch records. */
+    struct _gcsPATCH            patch[1024];
+
+    /* Number of patches in the array. */
+    gctUINT                     count;
+
+    /* Next item in the list. */
+    struct _gcsPATCH_LIST       *next;
+};
+
 /* Command buffer object. */
 struct _gcoCMDBUF
 {
     /* The object. */
     gcsOBJECT                   object;
+
+    /* Commit count. */
+    gctUINT64                   commitCount;
 
     /* Command buffer entry and exit pipes. */
     gcePIPE_SELECT              entryPipe;
@@ -114,20 +173,20 @@ struct _gcoCMDBUF
     gctUINT64                   logical;
 
     /* Number of bytes in command buffer. */
-    gctUINT                     bytes;
+    gctUINT32                   bytes;
 
     /* Start offset into the command buffer. */
-    gctUINT                     startOffset;
+    gctUINT32                   startOffset;
 
     /* Current offset into the command buffer. */
-    gctUINT                     offset;
+    gctUINT32                   offset;
 
     /* Number of free bytes in command buffer. */
-    gctUINT                     free;
+    gctUINT32                   free;
 
     /* Location of the last reserved area. */
     gctUINT64                   lastReserve;
-    gctUINT                     lastOffset;
+    gctUINT32                   lastOffset;
 
 #if gcdSECURE_USER
     /* Hint array for the current command buffer. */
@@ -142,6 +201,17 @@ struct _gcoCMDBUF
     gctUINT32                   lastLoadStateAddress;
     gctUINT32                   lastLoadStateCount;
 #endif
+
+    /* Completion signal. */
+    gctSIGNAL                   signal;
+
+    /* List of patches. */
+    struct _gcsPATCH_LIST       *patchHead;
+    struct _gcsPATCH_LIST       *patchTail;
+
+    /* Link to the siblings. */
+    gcoCMDBUF                   prev;
+    gcoCMDBUF                   next;
 };
 
 typedef struct _gcsQUEUE
@@ -164,18 +234,22 @@ struct _gcoQUEUE
     gcsQUEUE_PTR                head;
     gcsQUEUE_PTR                tail;
 
-#ifdef __QNXNTO__
-    /* Buffer for records. */
-    gcsQUEUE_PTR                records;
-    gctUINT32                   freeBytes;
-    gctUINT32                   offset;
-#else
+    /* chunks of the records. */
+    gctPOINTER                  chunks;
+
     /* List of free records. */
     gcsQUEUE_PTR                freeList;
-#endif
+
     #define gcdIN_QUEUE_RECORD_LIMIT 16
     /* Number of records currently in queue */
     gctUINT32                   recordCount;
+};
+
+struct _gcsTEMPCMDBUF
+{
+    gctUINT32 currentByteSize;
+    gctPOINTER buffer;
+    gctBOOL  inUse;
 };
 
 #ifdef __cplusplus

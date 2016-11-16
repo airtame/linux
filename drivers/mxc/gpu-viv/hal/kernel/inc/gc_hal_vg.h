@@ -1,20 +1,54 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2013 by Vivante Corp.
+*    The MIT License (MIT)
 *
-*    This program is free software; you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation; either version 2 of the license, or
-*    (at your option) any later version.
+*    Copyright (c) 2014 - 2016 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2016 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
 *
 *    This program is distributed in the hope that it will be useful,
 *    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *    GNU General Public License for more details.
 *
 *    You should have received a copy of the GNU General Public License
-*    along with this program; if not write to the Free Software
-*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
 *
 *****************************************************************************/
 
@@ -346,11 +380,11 @@ gckVGKERNEL_Destroy(
 
 /* Allocate linear video memory. */
 gceSTATUS
-gckKERNEL_AllocateLinearMemory(
+gckVGKERNEL_AllocateLinearMemory(
     IN gckKERNEL Kernel,
     IN OUT gcePOOL * Pool,
     IN gctSIZE_T Bytes,
-    IN gctSIZE_T Alignment,
+    IN gctUINT32 Alignment,
     IN gceSURF_TYPE Type,
     OUT gcuVIDMEM_NODE_PTR * Node
     );
@@ -378,21 +412,6 @@ gckKERNEL_QueryCommandBuffer(
     IN gckKERNEL Kernel,
     OUT gcsCOMMAND_BUFFER_INFO_PTR Information
     );
-
-#if gcdDYNAMIC_MAP_RESERVED_MEMORY
-gceSTATUS
-gckOS_MapReservedMemoryToKernel(
-    IN gckOS Os,
-    IN gctUINT32 Physical,
-    IN gctINT Bytes,
-    IN OUT gctPOINTER *Virtual
-    );
-
-gceSTATUS
-gckOS_UnmapReservedMemoryFromKernel(
-    IN gctPOINTER Virtual
-    );
-#endif
 
 /******************************************************************************\
 ******************************* gckVGHARDWARE Object ******************************
@@ -433,7 +452,7 @@ gceSTATUS
 gckVGHARDWARE_Execute(
     IN gckVGHARDWARE Hardware,
     IN gctUINT32 Address,
-    IN gctSIZE_T Count
+    IN gctUINT32 Count
     );
 
 /* Query the available memory. */
@@ -493,6 +512,7 @@ gceSTATUS
 gckVGHARDWARE_ConvertLogical(
     IN gckVGHARDWARE Hardware,
     IN gctPOINTER Logical,
+    IN gctBOOL InUserSpace,
     OUT gctUINT32 * Address
     );
 
@@ -579,7 +599,7 @@ gckVGHARDWARE_QueryIdle(
 \******************************************************************************/
 
 /* Vacant command buffer marker. */
-#define gcvVACANT_BUFFER        ((gcsCOMPLETION_SIGNAL_PTR) (1))
+#define gcvVACANT_BUFFER        ((gcsCOMPLETION_SIGNAL_PTR) ((gctSIZE_T)1))
 
 /* Command buffer header. */
 typedef struct _gcsCMDBUFFER * gcsCMDBUFFER_PTR;
@@ -591,7 +611,7 @@ typedef struct _gcsCMDBUFFER
     /* The user sets this to the node of the container buffer whitin which
        this particular command buffer resides. The kernel sets this to the
        node of the internally allocated buffer. */
-    gctUINT64                   node;
+    gcuVIDMEM_NODE_PTR          node;
 
     /* Command buffer hardware address. */
     gctUINT32                   address;
@@ -601,7 +621,7 @@ typedef struct _gcsCMDBUFFER
 
     /* Size of the area allocated for the data portion of this particular
        command buffer (headers and tail reserves are excluded). */
-    gctSIZE_T                   size;
+    gctUINT32                   size;
 
     /* Offset into the buffer [0..size]; reflects exactly how much data has
        been put into the command buffer. */
@@ -609,7 +629,7 @@ typedef struct _gcsCMDBUFFER
 
     /* The number of command units in the buffer for the hardware to
        execute. */
-    gctSIZE_T                   dataCount;
+    gctUINT32                   dataCount;
 
     /* MANAGED BY : user HAL (gcoBUFFER object).
        USED BY    : user HAL (gcoBUFFER object).
@@ -664,16 +684,13 @@ typedef struct _gcsVGCONTEXT
     gctUINT32                   currentPipe;
 
     /* State map/mod buffer. */
-    gctSIZE_T                   mapFirst;
-    gctSIZE_T                   mapLast;
-#ifdef __QNXNTO__
-    gctSIZE_T                   mapContainerSize;
-#endif
-    gcsVGCONTEXT_MAP_PTR            mapContainer;
-    gcsVGCONTEXT_MAP_PTR            mapPrev;
-    gcsVGCONTEXT_MAP_PTR            mapCurr;
-    gcsVGCONTEXT_MAP_PTR            firstPrevMap;
-    gcsVGCONTEXT_MAP_PTR            firstCurrMap;
+    gctUINT32                   mapFirst;
+    gctUINT32                   mapLast;
+    gcsVGCONTEXT_MAP_PTR        mapContainer;
+    gcsVGCONTEXT_MAP_PTR        mapPrev;
+    gcsVGCONTEXT_MAP_PTR        mapCurr;
+    gcsVGCONTEXT_MAP_PTR        firstPrevMap;
+    gcsVGCONTEXT_MAP_PTR        firstCurrMap;
 
     /* Main context buffer. */
     gcsCMDBUFFER_PTR            header;
@@ -684,6 +701,7 @@ typedef struct _gcsVGCONTEXT
     gctSIGNAL                   signal;
 
 #if defined(__QNXNTO__)
+    gctSIGNAL                   userSignal;
     gctINT32                    coid;
     gctINT32                    rcvid;
 #endif
@@ -863,7 +881,7 @@ typedef struct _gckVGMMU *          gckVGMMU;
 gceSTATUS
 gckVGMMU_Construct(
     IN gckVGKERNEL Kernel,
-    IN gctSIZE_T MmuSize,
+    IN gctUINT32 MmuSize,
     OUT gckVGMMU * Mmu
     );
 
