@@ -1,20 +1,54 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2013 by Vivante Corp.
+*    The MIT License (MIT)
 *
-*    This program is free software; you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation; either version 2 of the license, or
-*    (at your option) any later version.
+*    Copyright (c) 2014 - 2016 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2016 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
 *
 *    This program is distributed in the hope that it will be useful,
 *    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *    GNU General Public License for more details.
 *
 *    You should have received a copy of the GNU General Public License
-*    along with this program; if not write to the Free Software
-*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
 *
 *****************************************************************************/
 
@@ -49,8 +83,9 @@
 #define gckOS_FreeContiguous            gcmHAL2D(gckOS_FreeContiguous)
 #define gckOS_GetPageSize               gcmHAL2D(gckOS_GetPageSize)
 #define gckOS_GetPhysicalAddress        gcmHAL2D(gckOS_GetPhysicalAddress)
-#define gckOS_GetPhysicalAddressProcess     gcmHAL2D(gckOS_GetPhysicalAddressProcess)
-#define gckOS_MapPhysical                   gcmHAL2D(gckOS_MapPhysical)
+#define gckOS_UserLogicalToPhysical     gcmHAL2D(gckOS_UserLogicalToPhysical)
+#define gckOS_GetPhysicalAddressProcess gcmHAL2D(gckOS_GetPhysicalAddressProcess)
+#define gckOS_MapPhysical               gcmHAL2D(gckOS_MapPhysical)
 #define gckOS_UnmapPhysical             gcmHAL2D(gckOS_UnmapPhysical)
 #define gckOS_ReadRegister              gcmHAL2D(gckOS_ReadRegister)
 #define gckOS_WriteRegister             gcmHAL2D(gckOS_WriteRegister)
@@ -77,7 +112,6 @@
 #define gckOS_QueryNeedCopy             gcmHAL2D(gckOS_QueryNeedCopy)
 #define gckOS_CopyFromUserData          gcmHAL2D(gckOS_CopyFromUserData)
 #define gckOS_CopyToUserData            gcmHAL2D(gckOS_CopyToUserData)
-#define gckOS_MapUserPhysical           gcmHAL2D(gckOS_MapUserPhysical)
 #define gckOS_SuspendInterrupt          gcmHAL2D(gckOS_SuspendInterrupt)
 #define gckOS_ResumeInterrupt           gcmHAL2D(gckOS_ResumeInterrupt)
 #define gckOS_GetBaseAddress            gcmHAL2D(gckOS_GetBaseAddress)
@@ -151,7 +185,6 @@
 #define gckHARDWARE_Execute             gcmHAL2D(gckHARDWARE_Execute)
 #define gckHARDWARE_End                 gcmHAL2D(gckHARDWARE_End)
 #define gckHARDWARE_Nop                 gcmHAL2D(gckHARDWARE_Nop)
-#define gckHARDWARE_Wait                gcmHAL2D(gckHARDWARE_Wait)
 #define gckHARDWARE_PipeSelect          gcmHAL2D(gckHARDWARE_PipeSelect)
 #define gckHARDWARE_Link                gcmHAL2D(gckHARDWARE_Link)
 #define gckHARDWARE_Event               gcmHAL2D(gckHARDWARE_Event)
@@ -164,7 +197,6 @@
 #define gckHARDWARE_AlignToTile         gcmHAL2D(gckHARDWARE_AlignToTile)
 #define gckHARDWARE_UpdateQueueTail     gcmHAL2D(gckHARDWARE_UpdateQueueTail)
 #define gckHARDWARE_ConvertLogical      gcmHAL2D(gckHARDWARE_ConvertLogical)
-#define gckHARDWARE_ConvertPhysical     gcmHAL2D(gckHARDWARE_ConvertPhysical)
 #define gckHARDWARE_Interrupt           gcmHAL2D(gckHARDWARE_Interrupt)
 #define gckHARDWARE_SetMMU              gcmHAL2D(gckHARDWARE_SetMMU)
 #define gckHARDWARE_FlushMMU            gcmHAL2D(gckHARDWARE_FlushMMU)
@@ -209,9 +241,6 @@
 #define gckMMU_Destroy                  gcmHAL2D(gckMMU_Destroy)
 #define gckMMU_AllocatePages            gcmHAL2D(gckMMU_AllocatePages)
 #define gckMMU_FreePages                gcmHAL2D(gckMMU_FreePages)
-#define gckMMU_InsertNode               gcmHAL2D(gckMMU_InsertNode)
-#define gckMMU_RemoveNode               gcmHAL2D(gckMMU_RemoveNode)
-#define gckMMU_FreeHandleMemory         gcmHAL2D(gckMMU_FreeHandleMemory)
 #define gckMMU_Test                     gcmHAL2D(gckMMU_Test)
 #define gckHARDWARE_QueryProfileRegisters     gcmHAL2D(gckHARDWARE_QueryProfileRegisters)
 

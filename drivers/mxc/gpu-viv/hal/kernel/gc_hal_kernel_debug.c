@@ -1,20 +1,54 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2013 by Vivante Corp.
+*    The MIT License (MIT)
 *
-*    This program is free software; you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation; either version 2 of the license, or
-*    (at your option) any later version.
+*    Copyright (c) 2014 - 2016 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2016 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
 *
 *    This program is distributed in the hope that it will be useful,
 *    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *    GNU General Public License for more details.
 *
 *    You should have received a copy of the GNU General Public License
-*    along with this program; if not write to the Free Software
-*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
 *
 *****************************************************************************/
 
@@ -138,7 +172,7 @@ static gctUINT32 _debugZones = gcvZONE_NONE;
 
 #define gcmPTRALIGNMENT(Pointer, Alignemnt) \
 ( \
-    gcmALIGN(gcmPTR2INT(Pointer), Alignemnt) - gcmPTR2INT(Pointer) \
+    gcmALIGN(gcmPTR2INT32(Pointer), Alignemnt) - gcmPTR2INT32(Pointer) \
 )
 
 #if gcdALIGNBYSIZE
@@ -146,7 +180,7 @@ static gctUINT32 _debugZones = gcvZONE_NONE;
         (((Offset) & ((Alignment) - 1)) == 0)
 
 #   define gcmkALIGNPTR(Type, Pointer, Alignment) \
-        Pointer = (Type) gcmINT2PTR(gcmALIGN(gcmPTR2INT(Pointer), Alignment))
+        Pointer = (Type) gcmINT2PTR(gcmALIGN(gcmPTR2INT32(Pointer), Alignment))
 #else
 #   define gcmISALIGNED(Offset, Alignment) \
         gcvTRUE
@@ -502,7 +536,7 @@ _DirectPrint(
     gctARGUMENTS arguments;
 
     gcmkARGUMENTS_START(arguments, Message);
-    len = gcmkVSPRINTF(buffer, gcmSIZEOF(buffer), Message, arguments);
+    len = gcmkVSPRINTF(buffer, gcmSIZEOF(buffer), Message, &arguments);
     gcmkARGUMENTS_END(arguments);
 
     buffer[len] = '\0';
@@ -1285,7 +1319,7 @@ _AppendPrefix(
     item->prefixData = prefixData;
 
     /* Copy argument value. */
-    memcpy(prefixData, Data, gcdPREFIX_SIZE);
+    gcmkMEMCPY(prefixData, Data, gcdPREFIX_SIZE);
 
 #if gcdALIGNBYSIZE
     /* Compute the actual node size. */
@@ -1347,7 +1381,7 @@ _AppendString(
     /* Copy argument value. */
     if (ArgumentSize != 0)
     {
-        memcpy(messageData, Data, ArgumentSize);
+        gcmkMEMCPY(messageData, Data, ArgumentSize);
     }
 
 #if gcdALIGNBYSIZE
@@ -1422,12 +1456,12 @@ _AppendCopy(
     item->messageDataSize = ArgumentSize;
 
     /* Copy the message. */
-    memcpy((gctPOINTER) message, Message, messageLength);
+    gcmkMEMCPY((gctPOINTER) message, Message, messageLength);
 
     /* Copy argument value. */
     if (ArgumentSize != 0)
     {
-        memcpy(messageData, Data, ArgumentSize);
+        gcmkMEMCPY(messageData, Data, ArgumentSize);
     }
 
 #if gcdALIGNBYSIZE
@@ -1505,13 +1539,13 @@ _AppendBuffer(
 #endif
 
     /* Copy prefix data. */
-    memcpy(prefixData, PrefixData, gcdPREFIX_SIZE);
+    gcmkMEMCPY(prefixData, PrefixData, gcdPREFIX_SIZE);
 
     /* Compute the data pointer. */
     data = prefixData + gcdPREFIX_SIZE;
 
     /* Copy argument value. */
-    memcpy(data, Data, DataSize);
+    gcmkMEMCPY(data, Data, DataSize);
 
 #if gcdALIGNBYSIZE
     /* Compute the actual node size. */
@@ -1548,7 +1582,7 @@ _AppendBuffer(
     item->address  = Address;
 
     /* Copy argument value. */
-    memcpy(item + 1, Data, DataSize);
+    gcmkMEMCPY(item + 1, Data, DataSize);
 #endif
 }
 #endif
@@ -1711,7 +1745,7 @@ _Print(
     IN gctUINT ArgumentSize,
     IN gctBOOL CopyMessage,
     IN gctCONST_STRING Message,
-    IN gctARGUMENTS Arguments
+    IN gctARGUMENTS * Arguments
     )
 {
     gcsBUFFERED_OUTPUT_PTR outputBuffer;
@@ -1759,14 +1793,14 @@ _Print(
     {
         gcdOUTPUTCOPY(
             outputBuffer, outputBuffer->indent,
-            Message, ArgumentSize, * (gctPOINTER *) &Arguments
+            Message, ArgumentSize, (gctPOINTER) Arguments
             );
     }
     else
     {
         gcdOUTPUTSTRING(
             outputBuffer, outputBuffer->indent,
-            Message, ArgumentSize, * (gctPOINTER *) &Arguments
+            Message, ArgumentSize, ((gctPOINTER) Arguments)
             );
     }
 
@@ -1794,7 +1828,7 @@ extern volatile unsigned g_nQnxInIsrs;
     { \
         gctARGUMENTS __arguments__; \
         gcmkARGUMENTS_START(__arguments__, Message); \
-        _Print(ArgumentSize, CopyMessage, Message, __arguments__); \
+        _Print(ArgumentSize, CopyMessage, Message, &__arguments__); \
         gcmkARGUMENTS_END(__arguments__); \
     } \
     atomic_sub(&g_nQnxInIsrs, 1); \
@@ -1806,7 +1840,7 @@ extern volatile unsigned g_nQnxInIsrs;
 { \
     gctARGUMENTS __arguments__; \
     gcmkARGUMENTS_START(__arguments__, Message); \
-    _Print(ArgumentSize, CopyMessage, Message, __arguments__); \
+    _Print(ArgumentSize, CopyMessage, Message, &__arguments__); \
     gcmkARGUMENTS_END(__arguments__); \
 }
 
@@ -1940,10 +1974,11 @@ gckOS_DumpBuffer(
     IN gctBOOL CopyMessage
     )
 {
-    gctUINT32 address;
-    gcsBUFFERED_OUTPUT_PTR outputBuffer;
+    gctPHYS_ADDR_T physical;
+    gctUINT32 address                   = 0;
+    gcsBUFFERED_OUTPUT_PTR outputBuffer = gcvNULL;
     static gctBOOL userLocked;
-    gctCHAR *buffer = (gctCHAR*)Buffer;
+    gctCHAR *buffer                     = (gctCHAR*)Buffer;
 
     gcmkDECLARE_LOCK(lockHandle);
 
@@ -1984,7 +2019,8 @@ gckOS_DumpBuffer(
         /* Get the physical address of the buffer. */
         if (Type != gceDUMP_BUFFER_FROM_USER)
         {
-            gcmkVERIFY_OK(gckOS_GetPhysicalAddress(Os, Buffer, &address));
+            gcmkVERIFY_OK(gckOS_GetPhysicalAddress(Os, Buffer, &physical));
+            gcmkSAFECASTPHYSADDRT(address, physical);
         }
         else
         {
@@ -2441,119 +2477,345 @@ gckOS_DebugFlush(
 }
 gctCONST_STRING
 gckOS_DebugStatus2Name(
-	gceSTATUS status
-	)
+    gceSTATUS status
+    )
 {
-	switch (status)
-	{
-	case gcvSTATUS_OK:
-		return "gcvSTATUS_OK";
-	case gcvSTATUS_TRUE:
-		return "gcvSTATUS_TRUE";
-	case gcvSTATUS_NO_MORE_DATA:
-		return "gcvSTATUS_NO_MORE_DATA";
-	case gcvSTATUS_CACHED:
-		return "gcvSTATUS_CACHED";
-	case gcvSTATUS_MIPMAP_TOO_LARGE:
-		return "gcvSTATUS_MIPMAP_TOO_LARGE";
-	case gcvSTATUS_NAME_NOT_FOUND:
-		return "gcvSTATUS_NAME_NOT_FOUND";
-	case gcvSTATUS_NOT_OUR_INTERRUPT:
-		return "gcvSTATUS_NOT_OUR_INTERRUPT";
-	case gcvSTATUS_MISMATCH:
-		return "gcvSTATUS_MISMATCH";
-	case gcvSTATUS_MIPMAP_TOO_SMALL:
-		return "gcvSTATUS_MIPMAP_TOO_SMALL";
-	case gcvSTATUS_LARGER:
-		return "gcvSTATUS_LARGER";
-	case gcvSTATUS_SMALLER:
-		return "gcvSTATUS_SMALLER";
-	case gcvSTATUS_CHIP_NOT_READY:
-		return "gcvSTATUS_CHIP_NOT_READY";
-	case gcvSTATUS_NEED_CONVERSION:
-		return "gcvSTATUS_NEED_CONVERSION";
-	case gcvSTATUS_SKIP:
-		return "gcvSTATUS_SKIP";
-	case gcvSTATUS_DATA_TOO_LARGE:
-		return "gcvSTATUS_DATA_TOO_LARGE";
-	case gcvSTATUS_INVALID_CONFIG:
-		return "gcvSTATUS_INVALID_CONFIG";
-	case gcvSTATUS_CHANGED:
-		return "gcvSTATUS_CHANGED";
-	case gcvSTATUS_NOT_SUPPORT_DITHER:
-		return "gcvSTATUS_NOT_SUPPORT_DITHER";
+    switch (status)
+    {
+    case gcvSTATUS_OK:
+        return "gcvSTATUS_OK";
+    case gcvSTATUS_TRUE:
+        return "gcvSTATUS_TRUE";
+    case gcvSTATUS_NO_MORE_DATA:
+        return "gcvSTATUS_NO_MORE_DATA";
+    case gcvSTATUS_CACHED:
+        return "gcvSTATUS_CACHED";
+    case gcvSTATUS_MIPMAP_TOO_LARGE:
+        return "gcvSTATUS_MIPMAP_TOO_LARGE";
+    case gcvSTATUS_NAME_NOT_FOUND:
+        return "gcvSTATUS_NAME_NOT_FOUND";
+    case gcvSTATUS_NOT_OUR_INTERRUPT:
+        return "gcvSTATUS_NOT_OUR_INTERRUPT";
+    case gcvSTATUS_MISMATCH:
+        return "gcvSTATUS_MISMATCH";
+    case gcvSTATUS_MIPMAP_TOO_SMALL:
+        return "gcvSTATUS_MIPMAP_TOO_SMALL";
+    case gcvSTATUS_LARGER:
+        return "gcvSTATUS_LARGER";
+    case gcvSTATUS_SMALLER:
+        return "gcvSTATUS_SMALLER";
+    case gcvSTATUS_CHIP_NOT_READY:
+        return "gcvSTATUS_CHIP_NOT_READY";
+    case gcvSTATUS_NEED_CONVERSION:
+        return "gcvSTATUS_NEED_CONVERSION";
+    case gcvSTATUS_SKIP:
+        return "gcvSTATUS_SKIP";
+    case gcvSTATUS_DATA_TOO_LARGE:
+        return "gcvSTATUS_DATA_TOO_LARGE";
+    case gcvSTATUS_INVALID_CONFIG:
+        return "gcvSTATUS_INVALID_CONFIG";
+    case gcvSTATUS_CHANGED:
+        return "gcvSTATUS_CHANGED";
+    case gcvSTATUS_NOT_SUPPORT_DITHER:
+        return "gcvSTATUS_NOT_SUPPORT_DITHER";
 
-	case gcvSTATUS_INVALID_ARGUMENT:
-		return "gcvSTATUS_INVALID_ARGUMENT";
-	case gcvSTATUS_INVALID_OBJECT:
-		return "gcvSTATUS_INVALID_OBJECT";
-	case gcvSTATUS_OUT_OF_MEMORY:
-		return "gcvSTATUS_OUT_OF_MEMORY";
-	case gcvSTATUS_MEMORY_LOCKED:
-		return "gcvSTATUS_MEMORY_LOCKED";
-	case gcvSTATUS_MEMORY_UNLOCKED:
-		return "gcvSTATUS_MEMORY_UNLOCKED";
-	case gcvSTATUS_HEAP_CORRUPTED:
-		return "gcvSTATUS_HEAP_CORRUPTED";
-	case gcvSTATUS_GENERIC_IO:
-		return "gcvSTATUS_GENERIC_IO";
-	case gcvSTATUS_INVALID_ADDRESS:
-		return "gcvSTATUS_INVALID_ADDRESS";
-	case gcvSTATUS_CONTEXT_LOSSED:
-		return "gcvSTATUS_CONTEXT_LOSSED";
-	case gcvSTATUS_TOO_COMPLEX:
-		return "gcvSTATUS_TOO_COMPLEX";
-	case gcvSTATUS_BUFFER_TOO_SMALL:
-		return "gcvSTATUS_BUFFER_TOO_SMALL";
-	case gcvSTATUS_INTERFACE_ERROR:
-		return "gcvSTATUS_INTERFACE_ERROR";
-	case gcvSTATUS_NOT_SUPPORTED:
-		return "gcvSTATUS_NOT_SUPPORTED";
-	case gcvSTATUS_MORE_DATA:
-		return "gcvSTATUS_MORE_DATA";
-	case gcvSTATUS_TIMEOUT:
-		return "gcvSTATUS_TIMEOUT";
-	case gcvSTATUS_OUT_OF_RESOURCES:
-		return "gcvSTATUS_OUT_OF_RESOURCES";
-	case gcvSTATUS_INVALID_DATA:
-		return "gcvSTATUS_INVALID_DATA";
-	case gcvSTATUS_INVALID_MIPMAP:
-		return "gcvSTATUS_INVALID_MIPMAP";
-	case gcvSTATUS_NOT_FOUND:
-		return "gcvSTATUS_NOT_FOUND";
-	case gcvSTATUS_NOT_ALIGNED:
-		return "gcvSTATUS_NOT_ALIGNED";
-	case gcvSTATUS_INVALID_REQUEST:
-		return "gcvSTATUS_INVALID_REQUEST";
-	case gcvSTATUS_GPU_NOT_RESPONDING:
-		return "gcvSTATUS_GPU_NOT_RESPONDING";
-	case gcvSTATUS_TIMER_OVERFLOW:
-		return "gcvSTATUS_TIMER_OVERFLOW";
-	case gcvSTATUS_VERSION_MISMATCH:
-		return "gcvSTATUS_VERSION_MISMATCH";
-	case gcvSTATUS_LOCKED:
-		return "gcvSTATUS_LOCKED";
+    case gcvSTATUS_INVALID_ARGUMENT:
+        return "gcvSTATUS_INVALID_ARGUMENT";
+    case gcvSTATUS_INVALID_OBJECT:
+        return "gcvSTATUS_INVALID_OBJECT";
+    case gcvSTATUS_OUT_OF_MEMORY:
+        return "gcvSTATUS_OUT_OF_MEMORY";
+    case gcvSTATUS_MEMORY_LOCKED:
+        return "gcvSTATUS_MEMORY_LOCKED";
+    case gcvSTATUS_MEMORY_UNLOCKED:
+        return "gcvSTATUS_MEMORY_UNLOCKED";
+    case gcvSTATUS_HEAP_CORRUPTED:
+        return "gcvSTATUS_HEAP_CORRUPTED";
+    case gcvSTATUS_GENERIC_IO:
+        return "gcvSTATUS_GENERIC_IO";
+    case gcvSTATUS_INVALID_ADDRESS:
+        return "gcvSTATUS_INVALID_ADDRESS";
+    case gcvSTATUS_CONTEXT_LOSSED:
+        return "gcvSTATUS_CONTEXT_LOSSED";
+    case gcvSTATUS_TOO_COMPLEX:
+        return "gcvSTATUS_TOO_COMPLEX";
+    case gcvSTATUS_BUFFER_TOO_SMALL:
+        return "gcvSTATUS_BUFFER_TOO_SMALL";
+    case gcvSTATUS_INTERFACE_ERROR:
+        return "gcvSTATUS_INTERFACE_ERROR";
+    case gcvSTATUS_NOT_SUPPORTED:
+        return "gcvSTATUS_NOT_SUPPORTED";
+    case gcvSTATUS_MORE_DATA:
+        return "gcvSTATUS_MORE_DATA";
+    case gcvSTATUS_TIMEOUT:
+        return "gcvSTATUS_TIMEOUT";
+    case gcvSTATUS_OUT_OF_RESOURCES:
+        return "gcvSTATUS_OUT_OF_RESOURCES";
+    case gcvSTATUS_INVALID_DATA:
+        return "gcvSTATUS_INVALID_DATA";
+    case gcvSTATUS_INVALID_MIPMAP:
+        return "gcvSTATUS_INVALID_MIPMAP";
+    case gcvSTATUS_NOT_FOUND:
+        return "gcvSTATUS_NOT_FOUND";
+    case gcvSTATUS_NOT_ALIGNED:
+        return "gcvSTATUS_NOT_ALIGNED";
+    case gcvSTATUS_INVALID_REQUEST:
+        return "gcvSTATUS_INVALID_REQUEST";
+    case gcvSTATUS_GPU_NOT_RESPONDING:
+        return "gcvSTATUS_GPU_NOT_RESPONDING";
+    case gcvSTATUS_TIMER_OVERFLOW:
+        return "gcvSTATUS_TIMER_OVERFLOW";
+    case gcvSTATUS_VERSION_MISMATCH:
+        return "gcvSTATUS_VERSION_MISMATCH";
+    case gcvSTATUS_LOCKED:
+        return "gcvSTATUS_LOCKED";
+    case gcvSTATUS_INTERRUPTED:
+        return "gcvSTATUS_INTERRUPTED";
+    case gcvSTATUS_DEVICE:
+        return "gcvSTATUS_DEVICE";
+    case gcvSTATUS_NOT_MULTI_PIPE_ALIGNED:
+        return "gcvSTATUS_NOT_MULTI_PIPE_ALIGNED";
 
     /* Linker errors. */
-	case gcvSTATUS_GLOBAL_TYPE_MISMATCH:
-		return "gcvSTATUS_GLOBAL_TYPE_MISMATCH";
-	case gcvSTATUS_TOO_MANY_ATTRIBUTES:
-		return "gcvSTATUS_TOO_MANY_ATTRIBUTES";
-	case gcvSTATUS_TOO_MANY_UNIFORMS:
-		return "gcvSTATUS_TOO_MANY_UNIFORMS";
-	case gcvSTATUS_TOO_MANY_VARYINGS:
-		return "gcvSTATUS_TOO_MANY_VARYINGS";
-	case gcvSTATUS_UNDECLARED_VARYING:
-		return "gcvSTATUS_UNDECLARED_VARYING";
-	case gcvSTATUS_VARYING_TYPE_MISMATCH:
-		return "gcvSTATUS_VARYING_TYPE_MISMATCH";
-	case gcvSTATUS_MISSING_MAIN:
-		return "gcvSTATUS_MISSING_MAIN";
-	case gcvSTATUS_NAME_MISMATCH:
-		return "gcvSTATUS_NAME_MISMATCH";
-	case gcvSTATUS_INVALID_INDEX:
-		return "gcvSTATUS_INVALID_INDEX";
-	default:
-		return "nil";
-	}
+    case gcvSTATUS_GLOBAL_TYPE_MISMATCH:
+        return "gcvSTATUS_GLOBAL_TYPE_MISMATCH";
+    case gcvSTATUS_TOO_MANY_ATTRIBUTES:
+        return "gcvSTATUS_TOO_MANY_ATTRIBUTES";
+    case gcvSTATUS_TOO_MANY_UNIFORMS:
+        return "gcvSTATUS_TOO_MANY_UNIFORMS";
+    case gcvSTATUS_TOO_MANY_SAMPLER:
+        return "gcvSTATUS_TOO_MANY_SAMPLER";
+    case gcvSTATUS_TOO_MANY_VARYINGS:
+        return "gcvSTATUS_TOO_MANY_VARYINGS";
+    case gcvSTATUS_UNDECLARED_VARYING:
+        return "gcvSTATUS_UNDECLARED_VARYING";
+    case gcvSTATUS_VARYING_TYPE_MISMATCH:
+        return "gcvSTATUS_VARYING_TYPE_MISMATCH";
+    case gcvSTATUS_MISSING_MAIN:
+        return "gcvSTATUS_MISSING_MAIN";
+    case gcvSTATUS_NAME_MISMATCH:
+        return "gcvSTATUS_NAME_MISMATCH";
+    case gcvSTATUS_INVALID_INDEX:
+        return "gcvSTATUS_INVALID_INDEX";
+    case gcvSTATUS_UNIFORM_MISMATCH:
+        return "gcvSTATUS_UNIFORM_MISMATCH";
+    case gcvSTATUS_UNSAT_LIB_SYMBOL:
+        return "gcvSTATUS_UNSAT_LIB_SYMBOL";
+    case gcvSTATUS_TOO_MANY_SHADERS:
+        return "gcvSTATUS_TOO_MANY_SHADERS";
+    case gcvSTATUS_LINK_INVALID_SHADERS:
+        return "gcvSTATUS_LINK_INVALID_SHADERS";
+    case gcvSTATUS_CS_NO_WORKGROUP_SIZE:
+        return "gcvSTATUS_CS_NO_WORKGROUP_SIZE";
+    case gcvSTATUS_LINK_LIB_ERROR:
+        return "gcvSTATUS_LINK_LIB_ERROR";
+    case gcvSTATUS_SHADER_VERSION_MISMATCH:
+        return "gcvSTATUS_SHADER_VERSION_MISMATCH";
+    case gcvSTATUS_TOO_MANY_INSTRUCTION:
+        return "gcvSTATUS_TOO_MANY_INSTRUCTION";
+    case gcvSTATUS_SSBO_MISMATCH:
+        return "gcvSTATUS_SSBO_MISMATCH";
+    case gcvSTATUS_TOO_MANY_OUTPUT:
+        return "gcvSTATUS_TOO_MANY_OUTPUT";
+    case gcvSTATUS_TOO_MANY_INPUT:
+        return "gcvSTATUS_TOO_MANY_INPUT";
+    case gcvSTATUS_NOT_SUPPORT_CL:
+        return "gcvSTATUS_NOT_SUPPORT_CL";
+    case gcvSTATUS_NOT_SUPPORT_INTEGER:
+        return "gcvSTATUS_NOT_SUPPORT_INTEGER";
+
+    /* Compiler errors. */
+    case gcvSTATUS_COMPILER_FE_PREPROCESSOR_ERROR:
+        return "gcvSTATUS_COMPILER_FE_PREPROCESSOR_ERROR";
+    case gcvSTATUS_COMPILER_FE_PARSER_ERROR:
+        return "gcvSTATUS_COMPILER_FE_PARSER_ERROR";
+
+    default:
+        return "nil";
+    }
 }
+
+/*******************************************************************************
+***** Binary Trace *************************************************************
+*******************************************************************************/
+
+/*******************************************************************************
+**  _VerifyMessage
+**
+**  Verify a binary trace message, decode it to human readable string and print
+**  it.
+**
+**  ARGUMENTS:
+**
+**      gctCONST_STRING Buffer
+**          Pointer to buffer to store.
+**
+**      gctSIZE_T Bytes
+**          Buffer length.
+*/
+void
+_VerifyMessage(
+    IN gctCONST_STRING Buffer,
+    IN gctSIZE_T Bytes
+    )
+{
+    char arguments[150] = {0};
+    char format[100] = {0};
+
+    gctSTRING function;
+    gctPOINTER args;
+    gctUINT32 numArguments;
+    int i = 0;
+    gctUINT32 functionBytes;
+
+    gcsBINARY_TRACE_MESSAGE_PTR message = (gcsBINARY_TRACE_MESSAGE_PTR)Buffer;
+
+    /* Check signature. */
+    if (message->signature != 0x7FFFFFFF)
+    {
+        gcmkPRINT("Signature error");
+        return;
+    }
+
+    /* Get function name. */
+    function = (gctSTRING)&message->payload;
+    functionBytes = (gctUINT32)strlen(function) + 1;
+
+    /* Get arguments number. */
+    numArguments = message->numArguments;
+
+    /* Get arguments . */
+    args = function + functionBytes;
+
+    /* Prepare format string. */
+    while (numArguments--)
+    {
+        format[i++] = '%';
+        format[i++] = 'x';
+        format[i++] = ' ';
+    }
+
+    format[i] = '\0';
+
+    if (numArguments)
+    {
+        gcmkVSPRINTF(arguments, 150, format, (gctARGUMENTS *) &args);
+    }
+
+    gcmkPRINT("[%d](%d): %s(%d) %s",
+             message->pid,
+             message->tid,
+             function,
+             message->line,
+             arguments);
+}
+
+
+/*******************************************************************************
+**  gckOS_WriteToRingBuffer
+**
+**  Store a buffer to ring buffer.
+**
+**  ARGUMENTS:
+**
+**      gctCONST_STRING Buffer
+**          Pointer to buffer to store.
+**
+**      gctSIZE_T Bytes
+**          Buffer length.
+*/
+void
+gckOS_WriteToRingBuffer(
+    IN gctCONST_STRING Buffer,
+    IN gctSIZE_T Bytes
+    )
+{
+
+}
+
+/*******************************************************************************
+**  gckOS_BinaryTrace
+**
+**  Output a binary trace message.
+**
+**  ARGUMENTS:
+**
+**      gctCONST_STRING Function
+**          Pointer to function name.
+**
+**      gctINT Line
+**          Line number.
+**
+**      gctCONST_STRING Text OPTIONAL
+**          Optional pointer to a descriptive text.
+**
+**      ...
+**          Optional arguments to the descriptive text.
+*/
+void
+gckOS_BinaryTrace(
+    IN gctCONST_STRING Function,
+    IN gctINT Line,
+    IN gctCONST_STRING Text OPTIONAL,
+    ...
+    )
+{
+    static gctUINT32 messageSignature = 0x7FFFFFFF;
+    char buffer[gcdBINARY_TRACE_MESSAGE_SIZE];
+    gctUINT32 numArguments = 0;
+    gctUINT32 functionBytes;
+    gctUINT32 i = 0;
+    gctSTRING payload;
+    gcsBINARY_TRACE_MESSAGE_PTR message = (gcsBINARY_TRACE_MESSAGE_PTR)buffer;
+
+    /* Calculate arguments number. */
+    if (Text)
+    {
+        while (Text[i] != '\0')
+        {
+            if (Text[i] == '%')
+            {
+                numArguments++;
+            }
+            i++;
+        }
+    }
+
+    message->signature    = messageSignature;
+    message->pid          = gcmkGETPROCESSID();
+    message->tid          = gcmkGETTHREADID();
+    message->line         = Line;
+    message->numArguments = numArguments;
+
+    payload = (gctSTRING)&message->payload;
+
+    /* Function name. */
+    functionBytes = (gctUINT32)gcmkSTRLEN(Function) + 1;
+    gcmkMEMCPY(payload, Function, functionBytes);
+
+    /* Advance to next payload. */
+    payload += functionBytes;
+
+    /* Arguments value. */
+    if (numArguments)
+    {
+        gctARGUMENTS p;
+        gcmkARGUMENTS_START(p, Text);
+
+        for (i = 0; i < numArguments; ++i)
+        {
+            gctPOINTER value = gcmkARGUMENTS_ARG(p, gctPOINTER);
+            gcmkMEMCPY(payload, &value, gcmSIZEOF(gctPOINTER));
+            payload += gcmSIZEOF(gctPOINTER);
+        }
+
+        gcmkARGUMENTS_END(p);
+    }
+
+    gcmkASSERT(payload - buffer <= gcdBINARY_TRACE_MESSAGE_SIZE);
+
+
+    /* Send buffer to ring buffer. */
+    gckOS_WriteToRingBuffer(buffer, (gctUINT32)(payload - buffer));
+}
+

@@ -1,26 +1,68 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2013 by Vivante Corp.
+*    The MIT License (MIT)
 *
-*    This program is free software; you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation; either version 2 of the license, or
-*    (at your option) any later version.
+*    Copyright (c) 2014 - 2016 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014 - 2016 Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
 *
 *    This program is distributed in the hope that it will be useful,
 *    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *    GNU General Public License for more details.
 *
 *    You should have received a copy of the GNU General Public License
-*    along with this program; if not write to the Free Software
-*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
 *
 *****************************************************************************/
 
 
 #ifndef __gc_hal_options_h_
 #define __gc_hal_options_h_
+
+/*
+    gcdSECURITY
+
+*/
+#ifndef gcdSECURITY
+#   define gcdSECURITY                          0
+#endif
 
 /*
     gcdPRINT_VERSION
@@ -49,19 +91,26 @@
 #   define VIVANTE_PROFILER                     1
 #endif
 
-#ifndef VIVANTE_PROFILER_PERDRAW
-#   define  VIVANTE_PROFILER_PERDRAW    0
-#endif
-
 /*
     VIVANTE_PROFILER_CONTEXT
 
-        This define enables the profiler according to each hw context.
+        This define enables the profiler according each context.
 */
 #ifndef VIVANTE_PROFILER_CONTEXT
 #   define VIVANTE_PROFILER_CONTEXT             1
 #endif
 
+#ifndef VIVANTE_PROFILER_PERDRAW
+#   define VIVANTE_PROFILER_PERDRAW             0
+#endif
+
+#ifndef VIVANTE_PROFILER_NEW
+#   define VIVANTE_PROFILER_NEW                 0
+#endif
+
+#ifndef VIVANTE_PROFILER_PM
+#   define VIVANTE_PROFILER_PM                  1
+#endif
 /*
     gcdUSE_VG
 
@@ -79,13 +128,6 @@
 #ifndef USE_SW_FB
 #   define USE_SW_FB                            0
 #endif
-
-/*
-    USE_SUPER_SAMPLING
-
-        This define enables super-sampling support.
-*/
-#define USE_SUPER_SAMPLING                      0
 
 /*
     PROFILE_HAL_COUNTERS
@@ -167,6 +209,82 @@
 #   define gcdDUMP_API                          0
 #endif
 
+
+
+/*
+    gcdDEBUG_OPTION
+        When set to 1, the debug options are enabled. We must set other MACRO to enable
+        sub case.
+*/
+#ifndef gcdDEBUG_OPTION
+#   define gcdDEBUG_OPTION                      0
+
+#if gcdDEBUG_OPTION
+/*
+    gcdDEBUG_OPTION_KEY
+        The process name of debug application.
+*/
+#ifndef gcdDEBUG_OPTION_KEY
+#          define gcdDEBUG_OPTION_KEY                           "process"
+#       endif
+/*
+    gcdDEBUG_OPTION_NO_GL_DRAWS
+        When set to 1, all glDrawArrays and glDrawElements will be skip.
+*/
+#ifndef gcdDEBUG_OPTION_NO_GL_DRAWS
+#           define gcdDEBUG_OPTION_NO_GL_DRAWS                  0
+#       endif
+/*
+    gcdDEBUG_OPTION_NO_DRAW_PRIMITIVES
+        When set to 1, all DrawPrimitives will be skip.
+*/
+#ifndef gcdDEBUG_OPTION_NO_DRAW_PRIMITIVES
+#           define gcdDEBUG_OPTION_NO_DRAW_PRIMITIVES           0
+#       endif
+/*
+    gcdDEBUG_OPTION_SKIP_SWAP
+        When set to 1, just one out of gcdDEBUG_OPTION_SKIP_FRAMES(such as 1/10) eglSwapBuffers will be resolve,
+        others skip.
+*/
+#ifndef gcdDEBUG_OPTION_SKIP_SWAP
+#           define gcdDEBUG_OPTION_SKIP_SWAP                    0
+#           define gcdDEBUG_OPTION_SKIP_FRAMES                  10
+#       endif
+/*
+    gcdDEBUG_OPTION_FORCE_16BIT_RENDER_TARGET
+        When set to 1, the format of render target will force to RGB565.
+*/
+#ifndef gcdDEBUG_OPTION_FORCE_16BIT_RENDER_TARGET
+#           define gcdDEBUG_OPTION_FORCE_16BIT_RENDER_TARGET    0
+#       endif
+/*
+    gcdDEBUG_OPTION_NONE_TEXTURE
+        When set to 1, the type of texture will be set to AQ_TEXTURE_SAMPLE_MODE_TYPE_NONE.
+*/
+#ifndef gcdDEBUG_OPTION_NONE_TEXTURE
+#           define gcdDEBUG_OPTION_NONE_TEXTURE                 0
+#       endif
+/*
+    gcdDEBUG_OPTION_NONE_DEPTH
+        When set to 1, the depth format of surface will be set to gcvSURF_UNKNOWN.
+*/
+#ifndef gcdDEBUG_OPTION_NONE_DEPTH
+#           define gcdDEBUG_OPTION_NONE_DEPTH                   0
+#       endif
+
+#   endif
+#endif
+
+/*
+    gcdDUMP_SWAP_PER_DRAW
+
+        When set to 1, dump swap command for every single draw to make simulation comparison happy.
+        Only valid for ES3 driver for now.
+*/
+#ifndef gcdDUMP_SWAP_PER_DRAW
+#   define gcdDUMP_SWAP_PER_DRAW                0
+#endif
+
 /*
     gcdDUMP_FRAMERATE
         When set to a value other than zero, averaqe frame rate will be dumped.
@@ -175,16 +293,7 @@
         in the average. Frame count starts from 1.
 */
 #ifndef gcdDUMP_FRAMERATE
-#   define gcdDUMP_FRAMERATE					0
-#endif
-
-/*
-    gcdVIRTUAL_COMMAND_BUFFER
-        When set to 1, user command buffer and context buffer will be allocated
-        from gcvPOOL_VIRTUAL.
-*/
-#ifndef gcdVIRTUAL_COMMAND_BUFFER
-#   define gcdVIRTUAL_COMMAND_BUFFER            0
+#   define gcdDUMP_FRAMERATE                    0
 #endif
 
 /*
@@ -218,13 +327,22 @@
 #endif
 
 /*
+    gcdDUMP_2D
+
+        When set to non-zero, it will dump the 2D command and surface.
+*/
+#ifndef gcdDUMP_2D
+#   define gcdDUMP_2D                           0
+#endif
+
+/*
     gcdDUMP_FRAME_TGA
 
     When set to a value other than 0, a dump of the frame specified by the value,
     will be done into frame.tga. Frame count starts from 1.
  */
 #ifndef gcdDUMP_FRAME_TGA
-#define gcdDUMP_FRAME_TGA                       0
+#   define gcdDUMP_FRAME_TGA                    0
 #endif
 /*
     gcdNULL_DRIVER
@@ -234,7 +352,7 @@
     Set to 3 for bypassing the drivers.
 */
 #ifndef gcdNULL_DRIVER
-#   define gcdNULL_DRIVER                       0
+#   define gcdNULL_DRIVER  0
 #endif
 
 /*
@@ -317,6 +435,10 @@
 #endif
 #endif
 
+#ifndef gcdGC355_VGMMU_MEMORY_SIZE_KB
+#   define gcdGC355_VGMMU_MEMORY_SIZE_KB   32
+#endif
+
 /*
     gcdSECURE_USER
 
@@ -375,17 +497,6 @@
 #endif
 
 /*
-    gcdUSER_HEAP_ALLOCATOR
-
-        Set to 1 to enable user mode heap allocator for fast memory allocation
-        and destroying. Otherwise, memory allocation/destroying in user mode
-        will be directly managed by system. Only for linux for now.
-*/
-#ifndef gcdUSER_HEAP_ALLOCATOR
-#   define gcdUSER_HEAP_ALLOCATOR               1
-#endif
-
-/*
     gcdHEAP_SIZE
 
         Set the allocation size for the internal heaps.  Each time a heap is
@@ -400,22 +511,17 @@
 #endif
 
 /*
-    gcdPOWER_SUSNPEND_WHEN_IDLE
+    gcdPOWER_SUSPEND_WHEN_IDLE
 
         Set to 1 to make GPU enter gcvPOWER_SUSPEND when idle detected,
         otherwise GPU will enter gcvPOWER_IDLE.
 */
-#ifndef gcdPOWER_SUSNPEND_WHEN_IDLE
-#   define gcdPOWER_SUSNPEND_WHEN_IDLE          1
+#ifndef gcdPOWER_SUSPEND_WHEN_IDLE
+#   define gcdPOWER_SUSPEND_WHEN_IDLE          1
 #endif
 
-/*
-    gcdFPGA_BUILD
-
-        This define enables work arounds for FPGA images.
-*/
 #ifndef gcdFPGA_BUILD
-#   define gcdFPGA_BUILD                        0
+#   define gcdFPGA_BUILD                       0
 #endif
 
 /*
@@ -434,6 +540,24 @@
 #       define gcdGPU_TIMEOUT                   20000
 #   endif
 #endif
+
+/*
+    gcdGPU_2D_TIMEOUT
+
+        This define specified the number of milliseconds the system will wait
+        before it broadcasts the 2D GPU is stuck.  In other words, it will define
+        the timeout of any operation that needs to wait for the GPU.
+
+        If the value is 0, no timeout will be checked for.
+*/
+#ifndef gcdGPU_2D_TIMEOUT
+#if gcdFPGA_BUILD
+#       define gcdGPU_2D_TIMEOUT                0
+#   else
+#       define gcdGPU_2D_TIMEOUT                4000
+#   endif
+#endif
+
 
 /*
     gcdGPU_ADVANCETIMER
@@ -472,10 +596,20 @@
 #endif
 
 /*
+    gcdENABLE_BUFFER_ALIGNMENT
+
+    When enabled, video memory is allocated  with atleast 16KB aligment
+    between multiple sub-buffers.
+*/
+#ifndef gcdENABLE_BUFFER_ALIGNMENT
+#   define gcdENABLE_BUFFER_ALIGNMENT             1
+#endif
+
+/*
     gcdENABLE_BANK_ALIGNMENT
 
     When enabled, video memory is allocated bank aligned. The vendor can modify
-    _GetSurfaceBankAlignment() and gcoSURF_GetBankOffsetBytes() to define how
+    _GetSurfaceBankAlignment() and _GetBankOffsetBytes() to define how
     different types of allocations are bank and channel aligned.
     When disabled (default), no bank alignment is done.
 */
@@ -569,31 +703,11 @@
 #endif
 
 /*
-    gcdENABLE_VG
-            enable the 2D openVG
+    gcdDISABLE_CORES_2D3D
+            disable the 2D3D cores for 2D openVG
 */
-
-#ifndef gcdENABLE_VG
-#   define gcdENABLE_VG                         0
-#endif
-
-/*
-    gcdDYNAMIC_MAP_RESERVED_MEMORY
-
-        When gcvPOOL_SYSTEM is constructed from RESERVED memory,
-        driver can map the whole reserved memory to kernel space
-        at the beginning, or just map a piece of memory when need
-        to access.
-
-        Notice:
-        -  It's only for the 2D openVG. For other cores, there is
-           _NO_ need to map reserved memory to kernel.
-        -  It's meaningless when memory is allocated by
-           gckOS_AllocateContiguous, in that case, memory is always
-           mapped by system when allocated.
-*/
-#ifndef gcdDYNAMIC_MAP_RESERVED_MEMORY
-#   define gcdDYNAMIC_MAP_RESERVED_MEMORY      1
+#ifndef gcdDISABLE_CORES_2D3D
+#   define gcdDISABLE_CORES_2D3D                0
 #endif
 
 /*
@@ -608,7 +722,6 @@
         This option is only for those SOC which can't enable
         writecombine without enabling cacheable.
 */
-
 #ifndef gcdPAGED_MEMORY_CACHEABLE
 #   define gcdPAGED_MEMORY_CACHEABLE            0
 #endif
@@ -618,7 +731,6 @@
 
         When non-zero, non paged memory will be cacheable.
 */
-
 #ifndef gcdNONPAGED_MEMORY_CACHEABLE
 #   define gcdNONPAGED_MEMORY_CACHEABLE         0
 #endif
@@ -630,7 +742,6 @@
         gcdNONPAGED_MEMORY_BUFFERABLE and gcdNONPAGED_MEMORY_CACHEABLE
         can't be set 1 at same time
 */
-
 #ifndef gcdNONPAGED_MEMORY_BUFFERABLE
 #   define gcdNONPAGED_MEMORY_BUFFERABLE        1
 #endif
@@ -639,27 +750,29 @@
     gcdENABLE_INFINITE_SPEED_HW
             enable the Infinte HW , this is for 2D openVG
 */
-
 #ifndef gcdENABLE_INFINITE_SPEED_HW
 #   define gcdENABLE_INFINITE_SPEED_HW          0
 #endif
 
 /*
-    gcdENABLE_TS_DOUBLE_BUFFER
-            enable the TS double buffer, this is for 2D openVG
-*/
+    gcdMULTI_GPU
 
-#ifndef gcdENABLE_TS_DOUBLE_BUFFER
-#   define gcdENABLE_TS_DOUBLE_BUFFER           1
+    Enable/disable multi-GPU support.
+    0      : Disable multi-GPU support
+    1      : Enable one of the 3D cores
+    [2..X] : Number of 3D GPU Cores
+*/
+#ifndef gcdMULTI_GPU
+#   define gcdMULTI_GPU                         0
 #endif
 
 /*
-    gcd6000_SUPPORT
+    gcdMULTI_GPU_AFFINITY
 
-    Temporary define to enable/disable 6000 support.
- */
-#ifndef gcd6000_SUPPORT
-#   define gcd6000_SUPPORT                      0
+    Enable/disable the binding of a context to one GPU
+*/
+#ifndef gcdMULTI_GPU_AFFINITY
+#   define gcdMULTI_GPU_AFFINITY                0
 #endif
 
 /*
@@ -669,16 +782,8 @@
         idle state, and gcdPOWEROFF_TIMEOUT is also the default
         timeout in milliseconds.
  */
-
 #ifndef gcdPOWEROFF_TIMEOUT
 #   define gcdPOWEROFF_TIMEOUT                  300
-#endif
-
-/*
-    gcdUSE_VIDMEM_PER_PID
-*/
-#ifndef gcdUSE_VIDMEM_PER_PID
-#   define gcdUSE_VIDMEM_PER_PID                0
 #endif
 
 /*
@@ -686,15 +791,6 @@
 */
 #ifndef QNX_SINGLE_THREADED_DEBUGGING
 #   define QNX_SINGLE_THREADED_DEBUGGING        0
-#endif
-
-/*
-    gcdENABLE_RECOVERY
-
-        This define enables the recovery code.
-*/
-#ifndef gcdENABLE_RECOVERY
-#   define gcdENABLE_RECOVERY                   1
 #endif
 
 /*
@@ -718,44 +814,11 @@
 
 */
 #ifndef gcdSMP
+#ifdef __APPLE__
+#   define gcdSMP                               1
+#else
 #   define gcdSMP                               0
 #endif
-
-/*
-    gcdSUPPORT_SWAP_RECTANGLE
-
-        Support swap with a specific rectangle.
-
-        Set the rectangle with eglSetSwapRectangleANDROID api.
-*/
-#ifndef gcdSUPPORT_SWAP_RECTANGLE
-#   define gcdSUPPORT_SWAP_RECTANGLE            0
-#endif
-
-/*
-    gcdGPU_LINEAR_BUFFER_ENABLED
-
-        Use linear buffer for GPU apps so HWC can do 2D composition.
-*/
-#ifndef gcdGPU_LINEAR_BUFFER_ENABLED
-#   define gcdGPU_LINEAR_BUFFER_ENABLED         1
-#endif
-
-/*
-    gcdENABLE_RENDER_INTO_WINDOW
-
-        Enable Render-Into-Window (ie, No-Resolve) feature on android.
-        NOTE that even if enabled, it still depends on hardware feature and
-        android application behavior. When hardware feature or application
-        behavior can not support render into window mode, it will fail back
-        to normal mode.
-        When Render-Into-Window is finally used, window back buffer of android
-        applications will be allocated matching render target tiling format.
-        Otherwise buffer tiling is decided by the above option
-        'gcdGPU_LINEAR_BUFFER_ENABLED'.
-*/
-#ifndef gcdENABLE_RENDER_INTO_WINDOW
-#   define gcdENABLE_RENDER_INTO_WINDOW         1
 #endif
 
 /*
@@ -764,14 +827,14 @@
         Use shared resolve buffer for all app buffers.
 */
 #ifndef gcdSHARED_RESOLVE_BUFFER_ENABLED
-#   define gcdSHARED_RESOLVE_BUFFER_ENABLED         0
+#   define gcdSHARED_RESOLVE_BUFFER_ENABLED     0
 #endif
 
 /*
      gcdUSE_TRIANGLE_STRIP_PATCH
  */
 #ifndef gcdUSE_TRIANGLE_STRIP_PATCH
-#   define gcdUSE_TRIANGLE_STRIP_PATCH            1
+#   define gcdUSE_TRIANGLE_STRIP_PATCH          1
 #endif
 
 /*
@@ -783,23 +846,30 @@
 #   define gcdENABLE_OUTER_CACHE_PATCH          0
 #endif
 
-#ifndef gcdANDROID_UNALIGNED_LINEAR_COMPOSITION_ADJUST
-#   ifdef ANDROID
-#      define  gcdANDROID_UNALIGNED_LINEAR_COMPOSITION_ADJUST    1
-#   else
-#      define  gcdANDROID_UNALIGNED_LINEAR_COMPOSITION_ADJUST    0
-#   endif
+/*
+    gcdPROCESS_ADDRESS_SPACE
+
+        When non-zero, every process which attaches to galcore has its own GPU
+        address space, size of which is gcdPROCESS_ADDRESS_SPACE_SIZE.
+*/
+#ifndef gcdPROCESS_ADDRESS_SPACE
+#   define gcdPROCESS_ADDRESS_SPACE             0
+#   define gcdPROCESS_ADDRESS_SPACE_SIZE        0x80000000
 #endif
 
-#ifndef gcdENABLE_PE_DITHER_FIX
-#   define gcdENABLE_PE_DITHER_FIX              1
-#endif
+/*
+    gcdSHARED_PAGETABLE
 
+        When non-zero, multiple GPUs in one chip with same MMU use
+        one shared pagetable. So that when accessing same surface,
+        they can use same GPU virtual address.
+*/
 #ifndef gcdSHARED_PAGETABLE
-#   define gcdSHARED_PAGETABLE                  1
+#   define gcdSHARED_PAGETABLE                  !gcdPROCESS_ADDRESS_SPACE
 #endif
+
 #ifndef gcdUSE_PVR
-#   define gcdUSE_PVR			                1
+#   define gcdUSE_PVR                           1
 #endif
 
 /*
@@ -811,7 +881,7 @@
         For Linux, it's the size of a page. If this requeset fallbacks
         to gcvPOOL_CONTIGUOUS or gcvPOOL_VIRTUAL, memory will be wasted
         because they allocate a page at least.
- */
+*/
 #ifndef gcdSMALL_BLOCK_SIZE
 #   define gcdSMALL_BLOCK_SIZE                  4096
 #   define gcdRATIO_FOR_SMALL_MEMORY            32
@@ -821,17 +891,9 @@
     gcdCONTIGUOUS_SIZE_LIMIT
         When non-zero, size of video node from gcvPOOL_CONTIGUOUS is
         limited by gcdCONTIGUOUS_SIZE_LIMIT.
- */
+*/
 #ifndef gcdCONTIGUOUS_SIZE_LIMIT
 #   define gcdCONTIGUOUS_SIZE_LIMIT             0
-#endif
-
-#ifndef gcdDISALBE_EARLY_EARLY_Z
-#   define gcdDISALBE_EARLY_EARLY_Z             1
-#endif
-
-#ifndef gcdSHADER_SRC_BY_MACHINECODE
-#   define gcdSHADER_SRC_BY_MACHINECODE         1
 #endif
 
 /*
@@ -842,60 +904,19 @@
         is be used to debug.
 */
 #ifndef gcdLINK_QUEUE_SIZE
-#   define gcdLINK_QUEUE_SIZE                  0
+#   define gcdLINK_QUEUE_SIZE                   64
 #endif
 
 /*  gcdALPHA_KILL_IN_SHADER
- *
- *  Enable alpha kill inside the shader. This will be set automatically by the
- *  HAL if certain states match a criteria.
- */
+
+        Enable alpha kill inside the shader. This will be set automatically by the
+        HAL if certain states match a criteria.
+*/
 #ifndef gcdALPHA_KILL_IN_SHADER
 #   define gcdALPHA_KILL_IN_SHADER              1
 #endif
 
-/*  gcdHIGH_PRECISION_DELAY_ENABLE
- *
- *  Enable high precision schedule delay with 1ms unit. otherwise schedule delay up to 10ms.
- *  Browser app performance will have obvious drop without this enablement
- */
-#ifndef gcdHIGH_PRECISION_DELAY_ENABLE
-#   define gcdHIGH_PRECISION_DELAY_ENABLE        1
-#endif
 
-#ifndef gcdUSE_WCLIP_PATCH
-#   define gcdUSE_WCLIP_PATCH                   1
-#endif
-
-#ifndef gcdHZ_L2_DISALBE
-#   define gcdHZ_L2_DISALBE                     1
-#endif
-
-#ifndef gcdBUGFIX15_DISABLE
-#   define gcdBUGFIX15_DISABLE                  1
-#endif
-
-#ifndef gcdDISABLE_HZ_FAST_CLEAR
-#   define gcdDISABLE_HZ_FAST_CLEAR             1
-#endif
-
-#ifndef gcdUSE_NPOT_PATCH
-#define gcdUSE_NPOT_PATCH                       1
-#endif
-
-#ifndef gcdSYNC
-#   define gcdSYNC                              1
-#endif
-
-#ifndef gcdENABLE_SPECIAL_HINT3
-#   define gcdENABLE_SPECIAL_HINT3               1
-#endif
-
-#if defined(ANDROID)
-#ifndef gcdPRE_ROTATION
-#   define gcdPRE_ROTATION                      1
-#endif
-#endif
 
 /*
     gcdDVFS
@@ -904,9 +925,103 @@
         frequency feature.
  */
 #ifndef gcdDVFS
-#   define gcdDVFS                               0
-#   define gcdDVFS_ANAYLSE_WINDOW                4
-#   define gcdDVFS_POLLING_TIME                  (gcdDVFS_ANAYLSE_WINDOW * 4)
+#   define gcdDVFS                              0
+#   define gcdDVFS_ANAYLSE_WINDOW               4
+#   define gcdDVFS_POLLING_TIME                 (gcdDVFS_ANAYLSE_WINDOW * 4)
+#endif
+
+#ifndef gcdSYNC
+#   define gcdSYNC                              1
+#endif
+
+#ifndef gcdSHADER_SRC_BY_MACHINECODE
+#   define gcdSHADER_SRC_BY_MACHINECODE         1
+#endif
+
+#ifndef gcdGLB27_SHADER_REPLACE_OPTIMIZATION
+#    define gcdGLB27_SHADER_REPLACE_OPTIMIZATION 1
+#endif
+
+/*
+    gcdSTREAM_OUT_BUFFER
+
+        Enable suppport for the secondary stream out buffer.
+*/
+#ifndef gcdSTREAM_OUT_BUFFER
+#   define gcdSTREAM_OUT_BUFFER                 0
+#   define gcdSTREAM_OUT_NAIVE_SYNC             0
+#endif
+
+/*
+    gcdUSE_HARDWARE_CONFIGURATION_TABLES
+
+        Enable the use of hardware configuration tables,
+        instead of query hardware and determine the features.
+*/
+#ifndef gcdUSE_HARDWARE_CONFIGURATION_TABLES
+#   define gcdUSE_HARDWARE_CONFIGURATION_TABLES 0
+#endif
+
+/*
+    gcdSUPPORT_SWAP_RECTANGLE
+
+        Support swap with a specific rectangle.
+
+        Set the rectangle with eglSetSwapRectangleVIV api.
+        Android only.
+*/
+#ifndef gcdSUPPORT_SWAP_RECTANGLE
+#   define gcdSUPPORT_SWAP_RECTANGLE            1
+#endif
+
+/*
+    gcdGPU_LINEAR_BUFFER_ENABLED
+
+        Use linear buffer for GPU apps so HWC can do 2D composition.
+        Android only.
+*/
+#ifndef gcdGPU_LINEAR_BUFFER_ENABLED
+#   define gcdGPU_LINEAR_BUFFER_ENABLED         1
+#endif
+
+/*
+    gcdENABLE_RENDER_INTO_WINDOW
+
+        Enable Render-Into-Window (ie, No-Resolve or direct rendering) feature.
+        NOTE that even if enabled, it still depends on hardware feature and
+        application behavior. When hardware feature or application
+        behavior can not support render into window mode, it will fail back
+        to normal mode.
+        On android, if Render-Into-Window is finally used, window back buffer
+        of applications will be allocated matching render target tiling format.
+        Otherwise buffer tiling is decided by the above option
+        'gcdGPU_LINEAR_BUFFER_ENABLED'.
+*/
+#ifndef gcdENABLE_RENDER_INTO_WINDOW
+#   define gcdENABLE_RENDER_INTO_WINDOW         1
+#endif
+
+/*
+    gcdENABLE_RENDER_INTO_WINDOW_WITH_FC
+
+        Enable Direct-rendering (ie, No-Resolve) with tile status.
+        This is expremental and in development stage.
+        This will dynamically check if color compression is available.
+*/
+#ifndef gcdENABLE_RENDER_INTO_WINDOW_WITH_FC
+#   define gcdENABLE_RENDER_INTO_WINDOW_WITH_FC 1
+#endif
+
+/*
+    gcdENABLE_BLIT_BUFFER_PRESERVE
+
+        Render-Into-Window (ie, No-Resolve) does not include preserved swap
+        behavior.  This feature can enable buffer preserve in No-Resolve mode.
+        When enabled, previous buffer (may be part of ) will be resolve-blitted
+        to current buffer.
+*/
+#ifndef gcdENABLE_BLIT_BUFFER_PRESERVE
+#   define gcdENABLE_BLIT_BUFFER_PRESERVE       1
 #endif
 
 /*
@@ -927,21 +1042,305 @@
              'acquireFenceFd' for framebuffer target for DC
  */
 #ifndef gcdANDROID_NATIVE_FENCE_SYNC
-#   define gcdANDROID_NATIVE_FENCE_SYNC        0
-#endif
-
-#ifndef gcdFORCE_MIPMAP
-#   define gcdFORCE_MIPMAP                     0
+#   define gcdANDROID_NATIVE_FENCE_SYNC         0
 #endif
 
 /*
-    gcdFORCE_GAL_LOAD_TWICE
+    gcdANDROID_IMPLICIT_NATIVE_BUFFER_SYNC
 
-        When non-zero, each thread except the main one will load libGAL.so twice to avoid potential segmetantion fault when app using dlopen/dlclose.
-        If threads exit arbitrarily, libGAL.so may not unload until the process quit.
+        Enable implicit android native buffer sync.
+
+        For non-HW_RENDER buffer, CPU (or other hardware) and GPU can access
+        the buffer at the same time. This is to add implicit synchronization
+        between CPU (or the hardware) and GPU.
+
+        Eventually, please do not use implicit native buffer sync, but use
+        "fence sync" or "android native fence sync" instead in libgui, which
+        can be enabled in frameworks/native/libs/gui/Android.mk. This kind
+        of synchronization should be done by app but not driver itself.
+
+        Please disable this option when either "fence sync" or
+        "android native fence sync" is enabled.
  */
-#ifndef gcdFORCE_GAL_LOAD_TWICE
-#   define gcdFORCE_GAL_LOAD_TWICE             0
+#ifndef gcdANDROID_IMPLICIT_NATIVE_BUFFER_SYNC
+#   define gcdANDROID_IMPLICIT_NATIVE_BUFFER_SYNC   1
+#endif
+
+/*
+ * Implicit native buffer sync is not needed when ANDROID_native_fence_sync
+ * is available.
+ */
+#if gcdANDROID_NATIVE_FENCE_SYNC
+#   undef  gcdANDROID_IMPLICIT_NATIVE_BUFFER_SYNC
+#   define gcdANDROID_IMPLICIT_NATIVE_BUFFER_SYNC   0
+#endif
+
+/*
+    gcdANDROID_UNALIGNED_LINEAR_COMPOSITION_ADJUST
+
+        Enable source surface address adjust when composition on android.
+        Android only.
+*/
+#ifndef gcdANDROID_UNALIGNED_LINEAR_COMPOSITION_ADJUST
+#   define  gcdANDROID_UNALIGNED_LINEAR_COMPOSITION_ADJUST      1
+#endif
+
+/*
+    gcdUSE_WCLIP_PATCH
+
+        Enable wclipping patch.
+*/
+#ifndef gcdUSE_WCLIP_PATCH
+#   define gcdUSE_WCLIP_PATCH                   1
+#endif
+
+#ifndef gcdUSE_NPOT_PATCH
+#   define gcdUSE_NPOT_PATCH                    1
+#endif
+
+/*
+    gcd3DBLIT
+
+        TODO: Should be replaced by feature bit if available.
+*/
+#ifndef gcd3DBLIT
+#   define gcd3DBLIT                            0
+#endif
+
+/*
+    gcdINTERNAL_COMMENT
+
+        Wrap internal comment, content wrapped by it and the macor itself
+        will be removed in release driver.
+*/
+#ifndef gcdINTERNAL_COMMENT
+#   define gcdINTERNAL_COMMENT                  1
+#endif
+
+/*
+    gcdRTT_DISABLE_FC
+
+        Disable RTT FC support. For test only.
+*/
+#ifndef gcdRTT_DISABLE_FC
+#   define gcdRTT_DISABLE_FC                    0
+#endif
+
+/*
+    gcdFORCE_MIPMAP
+
+        Force generate mipmap for texture.
+*/
+#ifndef gcdFORCE_MIPMAP
+#   define gcdFORCE_MIPMAP                      0
+#endif
+
+/*
+    gcdFORCE_BILINEAR
+
+        Force bilinear for mipfilter.
+*/
+#ifndef gcdFORCE_BILINEAR
+#   define gcdFORCE_BILINEAR                    1
+#endif
+
+/*
+    gcdBINARY_TRACE
+
+        When non-zero, binary trace will be generated.
+
+        When gcdBINARY_TRACE_FILE_SIZE is non-zero, binary trace buffer will
+        be written to a file which size is limited to
+        gcdBINARY_TRACE_FILE_SIZE.
+*/
+#ifndef gcdBINARY_TRACE
+#   define gcdBINARY_TRACE                       0
+#   define gcdBINARY_TRACE_FILE_SIZE             0
+#endif
+
+#ifndef gcdMOVG
+#   define gcdMOVG                              0
+#   define gcdENABLE_TS_DOUBLE_BUFFER           1
+#else
+#if gcdMOVG
+#       define gcdENABLE_TS_DOUBLE_BUFFER       0
+#else
+#       define gcdENABLE_TS_DOUBLE_BUFFER       1
+#endif
+#endif
+
+/*  gcdINTERRUPT_STATISTIC
+ *
+ *  Monitor the event send to GPU and interrupt issued by GPU.
+ */
+
+#ifndef gcdINTERRUPT_STATISTIC
+#if defined(LINUX)
+#   define gcdINTERRUPT_STATISTIC               1
+#else
+#   define gcdINTERRUPT_STATISTIC               0
+#endif
+#endif
+
+/*
+    gcdYINVERTED_RENDERING
+        When it's not zero, we will rendering display buffer
+        with top-bottom direction. All other offscreen rendering
+        will be bottom-top, which follow OpenGL ES spec.
+*/
+#ifndef gcdYINVERTED_RENDERING
+#   define gcdYINVERTED_RENDERING 1
+#endif
+
+#if gcdYINVERTED_RENDERING
+/* disable unaligned linear composition adjust in Y-inverted rendering mode. */
+#   undef  gcdANDROID_UNALIGNED_LINEAR_COMPOSITION_ADJUST
+#   define gcdANDROID_UNALIGNED_LINEAR_COMPOSITION_ADJUST 0
+#endif
+
+/*
+    gcdFENCE_WAIT_LOOP_COUNT
+        Wait fence, loop count.
+*/
+#ifndef gcdFENCE_WAIT_LOOP_COUNT
+#   define gcdFENCE_WAIT_LOOP_COUNT 100
+#endif
+
+/*
+    gcdHAL_3D_DRAWBLIT
+        When it's not zero, we will enable HAL 3D drawblit
+        to replace client 3dblit.
+*/
+#ifndef gcdHAL_3D_DRAWBLIT
+#   define gcdHAL_3D_DRAWBLIT 1
+#endif
+
+/*
+    gcdPARTIAL_FAST_CLEAR
+        When it's not zero, partial fast clear is enabled.
+        Depends on gcdHAL_3D_DRAWBLIT, if gcdHAL_3D_DRAWBLIT is not enabled,
+        only available when scissor box is completely aligned.
+        Expremental, under test.
+*/
+#ifndef gcdPARTIAL_FAST_CLEAR
+#   define gcdPARTIAL_FAST_CLEAR                1
+#endif
+
+/*
+    gcdREMOVE_SURF_ORIENTATION
+        When it's not zero, we will remove surface orientation function.
+        It wil become to a parameter of resolve function.
+*/
+#ifndef gcdREMOVE_SURF_ORIENTATION
+#   define gcdREMOVE_SURF_ORIENTATION 0
+#endif
+
+/*
+    gcdPATTERN_FAST_PATH
+         For pattern match
+*/
+#ifndef gcdPATTERN_FAST_PATH
+#   define gcdPATTERN_FAST_PATH       1
+#endif
+
+/*
+    gcdUSE_INPUT_DEVICE
+         disable input devices usage under fb mode to support fb+vdk multi-process
+*/
+#ifndef gcdUSE_INPUT_DEVICE
+#   define gcdUSE_INPUT_DEVICE        0
+#endif
+
+/*
+    gcdFRAMEINFO_STATISTIC
+        When enable, collect frame information.
+*/
+#ifndef gcdFRAMEINFO_STATISTIC
+
+#if (defined(DBG) && DBG) || defined(DEBUG) || defined(_DEBUG) || gcdDUMP
+#   define gcdFRAMEINFO_STATISTIC      1
+#else
+#   define gcdFRAMEINFO_STATISTIC      0
+#endif
+
+#endif
+
+/*
+    gcdPACKED_OUTPUT_ADDRESS
+        When it's not zero, ps output is already packed after linked
+*/
+#ifndef gcdPACKED_OUTPUT_ADDRESS
+#   define gcdPACKED_OUTPUT_ADDRESS             1
+#endif
+
+/*
+    gcdENABLE_THIRD_PARTY_OPERATION
+        Enable third party operation like tpc or not.
+        This macro can only be enabled by special customer.
+*/
+#ifndef gcdENABLE_THIRD_PARTY_OPERATION
+#   define gcdENABLE_THIRD_PARTY_OPERATION      0
+#endif
+
+/*
+    gcdENABLE_DEC_COMPRESSION
+        Enable DEC TPC compression or not.
+*/
+#ifndef gcdENABLE_DEC_COMPRESSION
+#   define gcdENABLE_DEC_COMPRESSION            0
+#ifndef gcdDEC_ENABLE_AHB
+#   define gcdDEC_ENABLE_AHB                    0
+#endif
+#endif
+
+/*
+    Core configurations. By default enable all cores.
+*/
+#ifndef gcdENABLE_3D
+#   define gcdENABLE_3D                         1
+#endif
+
+#ifndef gcdENABLE_2D
+#   define gcdENABLE_2D                         1
+#endif
+
+#ifndef gcdENABLE_VG
+#   define gcdENABLE_VG                         0
+#endif
+
+#ifndef gcdGC355_PROFILER
+#   define gcdGC355_PROFILER                    0
+#endif
+
+#ifndef gcdGC355_MEM_PRINT
+#   define gcdGC355_MEM_PRINT                      0
+#else
+#if (!((gcdENABLE_3D == 0) && (gcdENABLE_2D == 0) && (gcdENABLE_VG == 1)))
+#      undef gcdGC355_MEM_PRINT
+#      define gcdGC355_MEM_PRINT                   0
+#   endif
+#endif
+
+#ifndef gcdENABLE_UNIFIED_CONSTANT
+#   define gcdENABLE_UNIFIED_CONSTANT           1
+#endif
+
+/*
+    gcdRECORD_COMMAND
+*/
+#ifndef gcdRECORD_COMMAND
+#   define gcdRECORD_COMMAND                    0
+#endif
+
+/*
+    gcdALLOC_CMD_FROM_RESERVE
+
+    Provide a way by which location of command buffer can be
+    specified. This is a DEBUG option to limit command buffer
+    to some memory range.
+*/
+#ifndef gcdALLOC_CMD_FROM_RESERVE
+#   define gcdALLOC_CMD_FROM_RESERVE            0
 #endif
 
 #endif /* __gc_hal_options_h_ */
