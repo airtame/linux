@@ -1782,12 +1782,17 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 {
 	int i;
 	struct fb_videomode *mode;
-
+#ifdef CONFIG_FB_AIRTAME
+  int vic = 0;
+#endif /* CONFIG_FB_AIRTAME */
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
 	console_lock();
 
 	fb_destroy_modelist(&hdmi->fbi->modelist);
+#ifdef CONFIG_FB_AIRTAME
+  fb_destroy_modelist(&hdmi->fbi->cea_modelist);
+#endif /* CONFIG_FB_AIRTAME */
 	fb_add_videomode(&vga_mode, &hdmi->fbi->modelist);
 
 	for (i = 0; i < hdmi->fbi->monspecs.modedb_len; i++) {
@@ -1799,7 +1804,12 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		mode = &hdmi->fbi->monspecs.modedb[i];
 
 		if (!(mode->vmode & FB_VMODE_INTERLACED) &&
-				(mxc_edid_mode_to_vic(mode) != 0)) {
+#ifdef CONFIG_FB_AIRTAME
+        ((vic = mxc_edid_mode_to_vic(mode)) != 0)
+#else
+				(mxc_edid_mode_to_vic(mode) != 0)
+#endif /* CONFIG_FB_AIRTAME */
+            ) {
 
 			dev_dbg(&hdmi->pdev->dev, "Added mode %d:", i);
 			dev_dbg(&hdmi->pdev->dev,
@@ -1811,6 +1821,11 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 				hdmi->fbi->monspecs.modedb[i].flag);
 
 			fb_add_videomode(mode, &hdmi->fbi->modelist);
+#ifdef CONFIG_FB_AIRTAME
+      if ((vic != 0) && hdmi->edid_cfg.hdmi_cap) {
+              fb_add_videomode(mode, &hdmi->fbi->cea_modelist);
+			}
+#endif /*CONFIG_FB_AIRTAME*/
 		}
 	}
 
@@ -2575,6 +2590,9 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 	hdmi_init_clk_regenerator();
 
 	INIT_LIST_HEAD(&hdmi->fbi->modelist);
+#ifdef CONFIG_FB_AIRTAME
+  INIT_LIST_HEAD(&hdmi->fbi->cea_modelist);
+#endif /* CONFIG_FB_AIRTAME */
 
 	spin_lock_init(&hdmi->irq_lock);
 
