@@ -475,6 +475,9 @@ struct fb_info {
 	struct fb_cmap cmap;		/* Current cmap */
 	struct list_head modelist;      /* mode list */
 	struct fb_videomode *mode;	/* current mode */
+#ifdef CONFIG_FB_AIRTAME
+        struct list_head cea_modelist; /* CEA mode list */
+#endif /* CONFIG_FB_AIRTAME */
 
 #ifdef CONFIG_FB_BACKLIGHT
 	/* assigned backlight device */
