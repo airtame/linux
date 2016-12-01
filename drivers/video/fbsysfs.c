@@ -216,6 +216,22 @@ static ssize_t show_modes(struct device *device, struct device_attribute *attr,
 	return i;
 }
 
+static ssize_t show_cea_modes(struct device *device, struct device_attribute *attr,
+			  char *buf)
+{
+	struct fb_info *fb_info = dev_get_drvdata(device);
+	ssize_t i;
+	struct fb_modelist *modelist;
+	const struct fb_videomode *mode;
+
+	i = 0;
+	list_for_each_entry(modelist,&fb_info->cea_modelist,list){
+		mode = &modelist->mode;
+		i += mode_string(buf, i, mode);
+	}
+	return i;
+}
+
 static ssize_t store_bpp(struct device *device, struct device_attribute *attr,
 			 const char *buf, size_t count)
 {
@@ -511,6 +527,7 @@ static struct device_attribute device_attrs[] = {
 	__ATTR(cursor, S_IRUGO|S_IWUSR, show_cursor, store_cursor),
 	__ATTR(mode, S_IRUGO|S_IWUSR, show_mode, store_mode),
 	__ATTR(modes, S_IRUGO|S_IWUSR, show_modes, store_modes),
+	__ATTR(cea_modes, S_IRUGO, show_cea_modes,NULL),
 	__ATTR(pan, S_IRUGO|S_IWUSR, show_pan, store_pan),
 	__ATTR(virtual_size, S_IRUGO|S_IWUSR, show_virtual, store_virtual),
 	__ATTR(name, S_IRUGO, show_name, NULL),

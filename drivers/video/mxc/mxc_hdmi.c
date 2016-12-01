@@ -1810,8 +1810,9 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 	console_lock();
 
 	fb_destroy_modelist(&hdmi->fbi->modelist);
-	fb_add_videomode(&vga_mode, &hdmi->fbi->modelist);
+	fb_destroy_modelist(&hdmi->fbi->cea_modelist);
 
+	fb_add_videomode(&vga_mode, &hdmi->fbi->modelist);
 	dev_dbg(&hdmi->pdev->dev, "Monspecs modedb lenght: %d\n", hdmi->fbi->monspecs.modedb_len);
 
 	for (i = 0; i < hdmi->fbi->monspecs.modedb_len; i++) {
@@ -1835,9 +1836,14 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 				else {
 					dev_dbg(&hdmi->pdev->dev, "Could not add mode: %d\n", i);
 				}
+
 			}
 			else {
-                dev_dbg(&hdmi->pdev->dev, "Mode: %d is not valid\n", i);
+				dev_dbg(&hdmi->pdev->dev, "Mode: %d is not valid\n", i);
+			}
+			int vic = mxc_edid_mode_to_vic(mode);
+			if (vic != 0) {
+				fb_add_videomode(mode, &hdmi->fbi->cea_modelist);
 			}
 		}
 		else {
@@ -2563,6 +2569,8 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 	hdmi_init_clk_regenerator();
 
 	INIT_LIST_HEAD(&hdmi->fbi->modelist);
+	INIT_LIST_HEAD(&hdmi->fbi->cea_modelist);
+
 
 	spin_lock_init(&hdmi->irq_lock);
 
