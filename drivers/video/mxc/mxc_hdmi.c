@@ -1842,7 +1842,8 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 				dev_dbg(&hdmi->pdev->dev, "Mode: %d is not valid\n", i);
 			}
 			int vic = mxc_edid_mode_to_vic(mode);
-			if (vic != 0) {
+			//add to the list only when HDMI mode and we have a valid CEA video-mode.
+			if ((vic != 0) && hdmi->edid_cfg.hdmi_cap) {
 				fb_add_videomode(mode, &hdmi->fbi->cea_modelist);
 			}
 		}
