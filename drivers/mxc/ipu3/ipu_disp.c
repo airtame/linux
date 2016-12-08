@@ -976,6 +976,28 @@ void ipu_set_csc_coefficients(struct ipu_soc *ipu, ipu_channel_t channel, int32_
 EXPORT_SYMBOL(ipu_set_csc_coefficients);
 
 /*!
+ * This function is called to adapt synchronous LCD panel to IPU restriction.
+ *
+ */
+void adapt_panel_to_ipu_restricitions(struct ipu_soc *ipu, uint16_t *v_start_width,
+					uint16_t *v_sync_width,
+					uint16_t *v_end_width)
+{
+	if (*v_end_width < 2) {
+		uint16_t diff = 2 - *v_end_width;
+		if (*v_start_width >= diff) {
+			*v_end_width = 2;
+			*v_start_width = *v_start_width - diff;
+		} else if (*v_sync_width > diff) {
+			*v_end_width = 2;
+			*v_sync_width = *v_sync_width - diff;
+		} else
+			dev_err(ipu->dev, "WARNING: try to adapt timming, but failed\n");
+		dev_err(ipu->dev, "WARNING: adapt panel end blank lines\n");
+	}
+}
+
+/*!
  * This function is called to initialize a synchronous LCD panel.
  *
  * @param	ipu		ipu handler
@@ -1036,6 +1058,7 @@ int32_t ipu_init_sync_panel(struct ipu_soc *ipu, int disp, uint32_t pixel_clk,
 	if ((v_sync_width == 0) || (h_sync_width == 0))
 		return -EINVAL;
 
+	adapt_panel_to_ipu_restricitions(ipu, &v_start_width, &v_sync_width, &v_end_width);
 	h_total = width + h_sync_width + h_start_width + h_end_width;
 	v_total = height + v_sync_width + v_start_width + v_end_width;
 
