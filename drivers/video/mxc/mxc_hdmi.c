@@ -83,6 +83,8 @@
 #define YCBCR422_8BITS		3
 #define XVYCC444            4
 
+#define MXC_MAX_PIXEL_CLOCK     216000000 //in Hz
+
 /*
  * We follow a flowchart which is in the "Synopsys DesignWare Courses
  * HDMI Transmitter Controller User Guide, 1.30a", section 3.1
@@ -1187,7 +1189,7 @@ static int hdmi_phy_configure(struct mxc_hdmi *hdmi, unsigned char pRep,
 		default:
 			return false;
 		}
-	} else if (hdmi->hdmi_data.video_mode.mPixelClock <= 216000000) {
+	} else if (hdmi->hdmi_data.video_mode.mPixelClock <= MXC_MAX_PIXEL_CLOCK) {
 		switch (cRes) {
 		case 8:
 			hdmi_phy_i2c_write(hdmi, 0x06dc, 0x10);
@@ -1822,8 +1824,12 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		 * And add CEA modes in the modelist.
 		 */
 		mode = &hdmi->fbi->monspecs.modedb[i];
-
-		if (!(mode->vmode & FB_VMODE_INTERLACED)) {
+		/*
+		* Currently the non-interlaced video modes with maximum pixel clock of 216 MHz are supported.
+		* i.MX 6Dual/6Quad Applications Processor Reference Manual, Rev. 3, 07/2015, page 1541 says
+		* that the pixel clocks are from 13.5MHz up to 266 MHz.
+		*/
+		if ((!(mode->vmode & FB_VMODE_INTERLACED)) && ((PICOS2KHZ(mode->pixclock)*1000) <= MXC_MAX_PIXEL_CLOCK)) {
 
 			struct fb_var_screeninfo var;
 
@@ -1848,7 +1854,7 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 			}
 		}
 		else {
-			dev_dbg(&hdmi->pdev->dev, "Mode: %d is interlaced\n", i);
+			dev_dbg(&hdmi->pdev->dev, "Mode: %d is interlaced or pixel clock rate is not supported\n", i);
 		}
 
 		dev_dbg(&hdmi->pdev->dev,
