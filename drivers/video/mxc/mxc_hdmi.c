@@ -1822,8 +1822,14 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		 * And add CEA modes in the modelist.
 		 */
 		mode = &hdmi->fbi->monspecs.modedb[i];
-
-		if (!(mode->vmode & FB_VMODE_INTERLACED)) {
+		/*
+		* Currently the non-interlaced video modes with width values less
+		* or equal to 2880 are supported. We don't support 2K and 4K resolution due to
+		* HDMI hardware limitation.
+		* Please check i.MX 6Dual/6Quad Applications Processor Reference Manual, Rev. 3, 07/2015
+		* page 1547 for more information
+		*/
+		if ((!(mode->vmode & FB_VMODE_INTERLACED)) && (mode->xres <= 2880)) {
 
 			struct fb_var_screeninfo var;
 
@@ -1848,7 +1854,7 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 			}
 		}
 		else {
-			dev_dbg(&hdmi->pdev->dev, "Mode: %d is interlaced\n", i);
+			dev_dbg(&hdmi->pdev->dev, "Mode: %d is interlaced or resolution is not supported\n", i);
 		}
 
 		dev_dbg(&hdmi->pdev->dev,
