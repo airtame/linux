@@ -1888,13 +1888,7 @@ static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 	console_lock();
 
 	fb_destroy_modelist(&hdmi->fbi->modelist);
-
-	/*Add all no interlaced CEA mode to default modelist */
-	for (i = 0; i < ARRAY_SIZE(mxc_cea_mode); i++) {
-		mode = &mxc_cea_mode[i];
-		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0))
-			fb_add_videomode(mode, &hdmi->fbi->modelist);
-	}
+	fb_add_videomode(&hdmi->default_mode,&hdmi->fbi->modelist);
 
 	console_unlock();
 }
@@ -2586,23 +2580,18 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 		     hdmi->dft_mode_str, NULL, 0, NULL,
 		     hdmi->default_bpp);
 
+	fb_var_to_videomode(&m, &hdmi->fbi->var);
+	dump_fb_videomode(&m);
+
 	console_lock();
 
 	fb_destroy_modelist(&hdmi->fbi->modelist);
 
-	/*Add all no interlaced CEA mode to default modelist */
-	for (i = 0; i < ARRAY_SIZE(mxc_cea_mode); i++) {
-		mode = &mxc_cea_mode[i];
-		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres != 0))
-			fb_add_videomode(mode, &hdmi->fbi->modelist);
-	}
+	fb_add_videomode(&m, &hdmi->fbi->modelist);
 
 	console_unlock();
 
 	/* Find a nearest mode in default modelist */
-	fb_var_to_videomode(&m, &hdmi->fbi->var);
-	dump_fb_videomode(&m);
-
 	hdmi->dft_mode_set = false;
 	/* Save default video mode */
 	memcpy(&hdmi->default_mode, &m, sizeof(struct fb_videomode));
