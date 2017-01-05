@@ -554,6 +554,19 @@ static int ath6kl_cfg80211_connect(struct wiphy *wiphy, struct net_device *dev,
 
 	if (sme->channel)
 		vif->ch_hint = sme->channel->center_freq;
+#ifdef AIRTAME_WLAN
+	/**
+         * Linux Kernel version (3.10.53), we're using, is *slightly* behind
+         * wpa_supplicant version (2.3), meaning that we can't benefit from
+         * some of the important features and bugfixes. One of them is BSS-hinting.
+         * By providing BSSID and/or frequency hints to ath6kl we can make it connecting
+         * to the best available AP instead of using roaming (which is proven to be tricky).
+         * wpa_supplicant takes care of picking up the best AP and hinting us, so all
+         * we have to do - is to interpret these hints correctly.
+         */
+	else if (sme->channel_hint)
+		vif->ch_hint = sme->channel_hint->center_freq;
+#endif /* AIRTAME_WLAN */
 
 	memset(vif->req_bssid, 0, sizeof(vif->req_bssid));
 	if (sme->bssid && !is_broadcast_ether_addr(sme->bssid))
