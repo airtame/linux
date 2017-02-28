@@ -1805,6 +1805,8 @@ static void mxc_hdmi_notify_fb(struct mxc_hdmi *hdmi)
 static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 {
 	int i;
+	int result;
+	int vic;
 	struct fb_videomode *mode;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
@@ -1834,20 +1836,14 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 			struct fb_var_screeninfo var;
 
 			fb_videomode_to_var(&var, mode);
-			if (fb_validate_mode(&var, hdmi->fbi) != -EINVAL) {
-				int result = fb_add_videomode(mode, &hdmi->fbi->modelist);
-				if (result == 0) {
-					dev_dbg(&hdmi->pdev->dev, "Added mode: %d\n", i);
-				}
-				else {
-					dev_dbg(&hdmi->pdev->dev, "Could not add mode: %d\n", i);
-				}
-
+			result = fb_add_videomode(mode, &hdmi->fbi->modelist);
+			if (result == 0) {
+				dev_dbg(&hdmi->pdev->dev, "Added mode: %d\n", i);
 			}
 			else {
-				dev_dbg(&hdmi->pdev->dev, "Mode: %d is not valid\n", i);
+				dev_dbg(&hdmi->pdev->dev, "Could not add mode: %d\n", i);
 			}
-			int vic = mxc_edid_mode_to_vic(mode);
+			vic = mxc_edid_mode_to_vic(mode);
 			//add to the list only when HDMI mode and we have a valid CEA video-mode.
 			if ((vic != 0) && hdmi->edid_cfg.hdmi_cap) {
 				fb_add_videomode(mode, &hdmi->fbi->cea_modelist);
@@ -1877,9 +1873,6 @@ static void  mxc_hdmi_default_edid_cfg(struct mxc_hdmi *hdmi)
 
 static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 {
-	u32 i;
-	const struct fb_videomode *mode;
-
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
 	/* If not EDID data read, set up default modelist  */
@@ -1891,7 +1884,6 @@ static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 	fb_destroy_modelist(&hdmi->fbi->modelist);
 	fb_add_videomode(&hdmi->default_mode,&hdmi->fbi->modelist);
 	fb_destroy_modelist(&hdmi->fbi->cea_modelist);
-	fb_add_videomode(&hdmi->default_mode,&hdmi->fbi->cea_modelist);
 
 	console_unlock();
 }
@@ -2483,7 +2475,6 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 			      struct mxc_dispdrv_setting *setting)
 {
 	int ret = 0;
-	u32 i;
 	const struct fb_videomode *mode;
 	struct fb_videomode m;
 	struct mxc_hdmi *hdmi = mxc_dispdrv_getdata(disp);
