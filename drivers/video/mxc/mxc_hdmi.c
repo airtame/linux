@@ -1806,7 +1806,7 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 {
 	int i;
 	int result;
-	int vic;
+	int vic = 0;
 	struct fb_videomode *mode;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
@@ -1815,8 +1815,17 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 
 	fb_destroy_modelist(&hdmi->fbi->modelist);
 	fb_destroy_modelist(&hdmi->fbi->cea_modelist);
-
+	/*
+	 * eventhought fbi->monspecs.modedb_len > 0 which means that the EDID for video
+	 * modes has been read, the TV specs might not be right (some of them equal to 0 for example)
+	 * I don't know why and it should be investigated.
+	 * This would result in fb_validate_mode filterring all the video modes greather than 640x480.
+	 * Therefore add the CEA standard timmings for 1920x1080M@60Hz mode by default, before we go through the list of video modes.
+	*/
+	fb_add_videomode(&mxc_cea_mode[16], &hdmi->fbi->modelist);
+	fb_add_videomode(&mxc_cea_mode[16], &hdmi->fbi->cea_modelist);
 	fb_add_videomode(&vga_mode, &hdmi->fbi->modelist);
+
 	dev_dbg(&hdmi->pdev->dev, "Monspecs modedb lenght: %d\n", hdmi->fbi->monspecs.modedb_len);
 
 	for (i = 0; i < hdmi->fbi->monspecs.modedb_len; i++) {
@@ -1831,36 +1840,38 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		* i.MX 6Dual/6Quad Applications Processor Reference Manual, Rev. 3, 07/2015, page 1541 says
 		* that the pixel clocks are from 13.5MHz up to 266 MHz.
 		*/
+
 		if ((!(mode->vmode & FB_VMODE_INTERLACED)) && ((PICOS2KHZ(mode->pixclock)*1000) <= MXC_MAX_PIXEL_CLOCK)) {
 
 			struct fb_var_screeninfo var;
 
 			fb_videomode_to_var(&var, mode);
-			result = fb_add_videomode(mode, &hdmi->fbi->modelist);
-			if (result == 0) {
-				dev_dbg(&hdmi->pdev->dev, "Added mode: %d\n", i);
+			if (fb_validate_mode(&var, hdmi->fbi) != -EINVAL) {
+				result = fb_add_videomode(mode, &hdmi->fbi->modelist);
+				if (result == 0) {
+					dev_dbg(&hdmi->pdev->dev, "Added mode: %d\n", i);
+				}else {
+					dev_dbg(&hdmi->pdev->dev, "Could not add mode: %d\n", i);
+				}
+				vic = mxc_edid_mode_to_vic(mode);
+				//add to the list only when HDMI mode and we have a valid CEA video-mode.
+				if ((vic != 0) && hdmi->edid_cfg.hdmi_cap) {
+					fb_add_videomode(mode, &hdmi->fbi->cea_modelist);
+				}
+			}else {
+				dev_dbg(&hdmi->pdev->dev, "Mode: %d is not valid\n", i);
 			}
-			else {
-				dev_dbg(&hdmi->pdev->dev, "Could not add mode: %d\n", i);
-			}
-			vic = mxc_edid_mode_to_vic(mode);
-			//add to the list only when HDMI mode and we have a valid CEA video-mode.
-			if ((vic != 0) && hdmi->edid_cfg.hdmi_cap) {
-				fb_add_videomode(mode, &hdmi->fbi->cea_modelist);
-			}
-		}
-		else {
+		}else {
 			dev_dbg(&hdmi->pdev->dev, "Mode: %d is interlaced or pixel clock rate is not supported\n", i);
 		}
-
 		dev_dbg(&hdmi->pdev->dev,
-						"xres = %d, yres = %d, freq = %d, vmode = %d, flag = %d\n",
-						hdmi->fbi->monspecs.modedb[i].xres,
-						hdmi->fbi->monspecs.modedb[i].yres,
-						hdmi->fbi->monspecs.modedb[i].refresh,
-						hdmi->fbi->monspecs.modedb[i].vmode,
-						hdmi->fbi->monspecs.modedb[i].flag);
-	}
+			"xres = %d, yres = %d, freq = %d, vmode = %d, flag = %d\n",
+			hdmi->fbi->monspecs.modedb[i].xres,
+			hdmi->fbi->monspecs.modedb[i].yres,
+			hdmi->fbi->monspecs.modedb[i].refresh,
+			hdmi->fbi->monspecs.modedb[i].vmode,
+			hdmi->fbi->monspecs.modedb[i].flag);
+    }
 
 	console_unlock();
 }
@@ -1879,11 +1890,12 @@ static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 	dev_info(&hdmi->pdev->dev, "create default modelist\n");
 
 	console_lock();
-	/* add only mode 1920x1080M@60(set by the mxc_ipuv3_fb) to the
+	/* add only standard CEA mode 1920x1080M@60 to the
 	list when there is an error reading the EDID */
 	fb_destroy_modelist(&hdmi->fbi->modelist);
-	fb_add_videomode(&hdmi->default_mode,&hdmi->fbi->modelist);
+	fb_add_videomode(&mxc_cea_mode[16],&hdmi->fbi->modelist);
 	fb_destroy_modelist(&hdmi->fbi->cea_modelist);
+	fb_add_videomode(&mxc_cea_mode[16],&hdmi->fbi->cea_modelist);
 
 	console_unlock();
 }
