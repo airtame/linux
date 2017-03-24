@@ -1839,26 +1839,17 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		* i.MX 6Dual/6Quad Applications Processor Reference Manual, Rev. 3, 07/2015, page 1541 says
 		* that the pixel clocks are from 13.5MHz up to 266 MHz.
 		*/
-
 		if ((!(mode->vmode & FB_VMODE_INTERLACED)) && ((PICOS2KHZ(mode->pixclock)*1000) <= MXC_MAX_PIXEL_CLOCK)) {
-
-			struct fb_var_screeninfo var;
-
-			fb_videomode_to_var(&var, mode);
-			if (fb_validate_mode(&var, hdmi->fbi) != -EINVAL) {
-				result = fb_add_videomode(mode, &hdmi->fbi->modelist);
-				if (result == 0) {
-					dev_dbg(&hdmi->pdev->dev, "Added mode: %d\n", i);
-				}else {
-					dev_dbg(&hdmi->pdev->dev, "Could not add mode: %d\n", i);
-				}
-				vic = mxc_edid_mode_to_vic(mode);
-				//add to the list only when HDMI mode and we have a valid CEA video-mode.
-				if ((vic != 0) && hdmi->edid_cfg.hdmi_cap) {
-					fb_add_videomode(mode, &hdmi->fbi->cea_modelist);
-				}
+			result = fb_add_videomode(mode, &hdmi->fbi->modelist);
+			if (result == 0) {
+				dev_dbg(&hdmi->pdev->dev, "Added mode: %d\n", i);
 			}else {
-				dev_dbg(&hdmi->pdev->dev, "Mode: %d is not valid\n", i);
+				dev_dbg(&hdmi->pdev->dev, "Could not add mode: %d\n", i);
+			}
+			vic = mxc_edid_mode_to_vic(mode);
+			//add to the list only when HDMI mode and we have a valid CEA video-mode.
+			if ((vic != 0) && hdmi->edid_cfg.hdmi_cap) {
+				fb_add_videomode(mode, &hdmi->fbi->cea_modelist);
 			}
 		}else {
 			dev_dbg(&hdmi->pdev->dev, "Mode: %d is interlaced or pixel clock rate is not supported\n", i);
@@ -1871,7 +1862,6 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 			hdmi->fbi->monspecs.modedb[i].vmode,
 			hdmi->fbi->monspecs.modedb[i].flag);
     }
-
 	console_unlock();
 }
 
@@ -1926,22 +1916,33 @@ static void mxc_hdmi_set_mode_to_vga_dvi(struct mxc_hdmi *hdmi)
 static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi)
 {
 	const struct fb_videomode *mode;
-	struct fb_videomode m;
-	struct fb_var_screeninfo var;
-
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
 	/* Set the default mode only once. */
 	if (!hdmi->dft_mode_set) {
-		fb_videomode_to_var(&var, &hdmi->default_mode);
+		const struct fb_videomode *best_mode = NULL;
+		best_mode = fb_find_best_display(&hdmi->fbi->monspecs,&hdmi->fbi->modelist);
+		if (best_mode) {
+			mode = best_mode;
+		}
+		else {
+			pr_warning("%s: could not find best mode in modelist\n", __func__);
+			/*find the closest EDID mode  to the IPU default mode*/
+			mode = fb_find_nearest_mode(&hdmi->default_mode, &hdmi->fbi->modelist);
+			dump_fb_videomode((struct fb_videomode*)mode);
+		}
 		hdmi->dft_mode_set = true;
-	} else
-		fb_videomode_to_var(&var, &hdmi->previous_non_vga_mode);
-
-	fb_var_to_videomode(&m, &var);
-	dump_fb_videomode(&m);
-
-	mode = fb_find_nearest_mode(&m, &hdmi->fbi->modelist);
+	} else {
+		struct fb_var_screeninfo var;
+		fb_videomode_to_var(&var,&hdmi->previous_non_vga_mode);
+		/*try to look for the exact non-vga mode that has been previously set*/
+		mode = fb_match_mode(&var, &hdmi->fbi->modelist);
+		/*if not found (edid data changed) then request the closest one that matches the non-vga mode*/
+		if (!mode) {
+			mode = fb_find_nearest_mode(&hdmi->previous_non_vga_mode, &hdmi->fbi->modelist);
+		}
+		dump_fb_videomode((struct fb_videomode*)mode);
+	}
 	if (!mode) {
 		pr_err("%s: could not find mode in modelist\n", __func__);
 		return;
@@ -2196,7 +2197,6 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
 	fb_var_to_videomode(&m, &hdmi->fbi->var);
-	dump_fb_videomode(&m);
 
 	dev_dbg(&hdmi->pdev->dev, "%s - video mode changed\n", __func__);
 
@@ -2207,7 +2207,12 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 		memcpy(&hdmi->previous_non_vga_mode, &m,
 		       sizeof(struct fb_videomode));
 		if (!list_empty(&hdmi->fbi->modelist)) {
-			edid_mode = fb_find_nearest_mode(&m, &hdmi->fbi->modelist);
+			/*try to find the exact match for the frame buffer video mode that has been set */
+		    edid_mode = fb_match_mode(&hdmi->fbi->var, &hdmi->fbi->modelist);
+		    /*if not found then try to get the closest one*/
+		    if (!edid_mode) {
+				edid_mode = fb_find_nearest_mode(&m, &hdmi->fbi->modelist);
+			}
 			pr_debug("edid mode ");
 			dump_fb_videomode((struct fb_videomode *)edid_mode);
 			/* update fbi mode */
