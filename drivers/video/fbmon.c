@@ -55,6 +55,7 @@
 #define FBMON_FIX_INPUT   2
 #define FBMON_FIX_TIMINGS 3
 
+
 #ifdef CONFIG_FB_MODE_HELPERS
 struct broken_edid {
 	u8  manufacturer[4];
@@ -581,6 +582,15 @@ static void get_detailed_timing(unsigned char *block,
 	}
 	mode->flag = FB_MODE_IS_DETAILED;
 
+	if ((H_SIZE / 16) == (V_SIZE / 9))
+		mode->vmode |= FB_VMODE_ASPECT_16_9;
+	else if ((H_SIZE / 4) == (V_SIZE / 3))
+		mode->vmode |= FB_VMODE_ASPECT_4_3;
+	else if ((mode->xres / 16) == (mode->yres / 9))
+		mode->vmode |= FB_VMODE_ASPECT_16_9;
+	else if ((mode->xres / 4) == (mode->yres / 3))
+		mode->vmode |= FB_VMODE_ASPECT_4_3;
+
 	DPRINTK("      %d MHz ",  PIXEL_CLOCK/1000000);
 	DPRINTK("%d %d %d %d ", H_ACTIVE, H_ACTIVE + H_SYNC_OFFSET,
 	       H_ACTIVE + H_SYNC_OFFSET + H_SYNC_WIDTH, H_ACTIVE + H_BLANKING);
@@ -588,6 +598,13 @@ static void get_detailed_timing(unsigned char *block,
 	       V_ACTIVE + V_SYNC_OFFSET + V_SYNC_WIDTH, V_ACTIVE + V_BLANKING);
 	DPRINTK("%sHSync %sVSync\n\n", (HSYNC_POSITIVE) ? "+" : "-",
 	       (VSYNC_POSITIVE) ? "+" : "-");
+
+	if (mode->vmode & FB_VMODE_ASPECT_16_9)
+		DPRINTK("      Aspect ratio: 16:9\n");
+	else if (mode->vmode & FB_VMODE_ASPECT_4_3)
+		DPRINTK("      Aspect ratio: 4:3\n");
+	else
+		DPRINTK("      No Aspect ratio\n");
 }
 
 /**
