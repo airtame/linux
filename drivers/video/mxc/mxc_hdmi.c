@@ -1878,6 +1878,7 @@ static void  mxc_hdmi_default_edid_cfg(struct mxc_hdmi *hdmi)
 
 static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 {
+	/* NO EDID or EDID read fail -> create default mode list*/
 	u32 i;
 	const struct fb_videomode *mode;
 
@@ -1890,11 +1891,10 @@ static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 
 	fb_destroy_modelist(&hdmi->fbi->modelist);
 	fb_destroy_modelist(&hdmi->fbi->cea_modelist);
-
-	/*Add all no interlaced CEA mode to default modelist */
+	/*Add all no interlaced CEA modes that do not break the IPU limitations to default modelist */
 	for (i = 1; i < ARRAY_SIZE(mxc_cea_mode); i++) {
 		mode = &mxc_cea_mode[i];
-		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres <=1920)) {
+		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres<=1920) && ((PICOS2KHZ(mode->pixclock)*1000) <= MXC_MAX_PIXEL_CLOCK)) {
 			fb_add_videomode(mode, &hdmi->fbi->modelist);
 			fb_add_videomode(mode, &hdmi->fbi->cea_modelist);
 		}
@@ -2617,10 +2617,10 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 
 	fb_destroy_modelist(&hdmi->fbi->modelist);
 
-	/*Add all no interlaced CEA mode to default modelist */
+	/*Add all no interlaced CEA modes that do not break the IPU limitations to default modelist */
 	for (i = 1; i < ARRAY_SIZE(mxc_cea_mode); i++) {
 		mode = &mxc_cea_mode[i];
-		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres <= 1920)) {
+		if (!(mode->vmode & FB_VMODE_INTERLACED) && (mode->xres<=1920) && ((PICOS2KHZ(mode->pixclock)*1000) <= MXC_MAX_PIXEL_CLOCK)) {
 			fb_add_videomode(mode,&hdmi->fbi->modelist);
 			fb_add_videomode(mode,&hdmi->fbi->cea_modelist);
 		}
