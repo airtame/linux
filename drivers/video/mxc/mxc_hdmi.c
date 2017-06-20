@@ -1843,8 +1843,10 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		* Currently the non-interlaced video modes with maximum pixel clock of 216 MHz are supported.
 		* i.MX 6Dual/6Quad Applications Processor Reference Manual, Rev. 3, 07/2015, page 1541 says
 		* that the pixel clocks are from 13.5MHz up to 266 MHz.
+		* Also filter out those that have xres and yres not multiple of 8 (IPU limitation).
 		*/
-		if ((!(mode->vmode & FB_VMODE_INTERLACED)) && ((PICOS2KHZ(mode->pixclock)*1000) <= MXC_MAX_PIXEL_CLOCK)) {
+		if ((!(mode->vmode & FB_VMODE_INTERLACED)) && ((PICOS2KHZ(mode->pixclock)*1000) <= MXC_MAX_PIXEL_CLOCK)
+		    && (mode->xres % 8 == 0) && (mode->yres % 8 == 0)) {
 			result = fb_add_videomode(mode, &hdmi->fbi->modelist);
 			if (result == 0) {
 				dev_dbg(&hdmi->pdev->dev, "Added mode: %d\n", i);
@@ -1857,7 +1859,7 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 				fb_add_videomode(mode, &hdmi->fbi->cea_modelist);
 			}
 		}else {
-			dev_dbg(&hdmi->pdev->dev, "Mode: %d is interlaced or pixel clock rate is not supported\n", i);
+			dev_dbg(&hdmi->pdev->dev, "Mode: %d is interlaced or pixel clock rate is not supported or xres[yres] not multiple of 8\n", i);
 		}
 		dev_dbg(&hdmi->pdev->dev,
 			"xres = %d, yres = %d, freq = %d, vmode = %d, flag = %d\n",
