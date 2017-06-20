@@ -1815,6 +1815,22 @@ static void mxc_hdmi_notify_fb(struct mxc_hdmi *hdmi)
 	dev_dbg(&hdmi->pdev->dev, "%s exit\n", __func__);
 }
 
+
+	/*
+	* Currently the non-interlaced video modes with maximum pixel clock of 216 MHz are supported.
+	* i.MX 6Dual/6Quad Applications Processor Reference Manual, Rev. 3, 07/2015, page 1541 says
+	* that the pixel clocks are from 13.5MHz up to 266 MHz.
+	* Also filter out those that have xres and yres not multiple of 8 (IPU limitation).
+	*/
+static bool mxc_hdmi_is_valid_mode(struct fb_videomode *mode ) {
+	bool valid = false;
+	if ((!(mode->vmode & FB_VMODE_INTERLACED)) && ((PICOS2KHZ(mode->pixclock)*1000) <= MXC_MAX_PIXEL_CLOCK)
+		&& (mode->xres % 8 == 0) && (mode->yres % 8 == 0)) {
+			valid = true;
+		}
+	return valid;
+}
+
 static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 {
 	int i;
@@ -1833,18 +1849,8 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 	dev_dbg(&hdmi->pdev->dev, "Monspecs modedb lenght: %d\n", hdmi->fbi->monspecs.modedb_len);
 
 	for (i = 0; i < hdmi->fbi->monspecs.modedb_len; i++) {
-		/*
-		 * We might check here if mode is supported by HDMI.
-		 * We do not currently support interlaced modes.
-		 * And add CEA modes in the modelist.
-		 */
 		mode = &hdmi->fbi->monspecs.modedb[i];
-		/*
-		* Currently the non-interlaced video modes with maximum pixel clock of 216 MHz are supported.
-		* i.MX 6Dual/6Quad Applications Processor Reference Manual, Rev. 3, 07/2015, page 1541 says
-		* that the pixel clocks are from 13.5MHz up to 266 MHz.
-		*/
-		if ((!(mode->vmode & FB_VMODE_INTERLACED)) && ((PICOS2KHZ(mode->pixclock)*1000) <= MXC_MAX_PIXEL_CLOCK)) {
+		if (mxc_hdmi_is_valid_mode(mode)) {
 			result = fb_add_videomode(mode, &hdmi->fbi->modelist);
 			if (result == 0) {
 				dev_dbg(&hdmi->pdev->dev, "Added mode: %d\n", i);
@@ -1857,7 +1863,7 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 				fb_add_videomode(mode, &hdmi->fbi->cea_modelist);
 			}
 		}else {
-			dev_dbg(&hdmi->pdev->dev, "Mode: %d is interlaced or pixel clock rate is not supported\n", i);
+			dev_dbg(&hdmi->pdev->dev, "Mode: %d is interlaced or pixel clock rate is not supported or xres[yres] not multiple of 8\n", i);
 		}
 		dev_dbg(&hdmi->pdev->dev,
 			"xres = %d, yres = %d, freq = %d, vmode = %d, flag = %d\n",
