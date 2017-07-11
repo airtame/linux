@@ -562,13 +562,22 @@ static int ath6kl_cfg80211_connect(struct wiphy *wiphy, struct net_device *dev,
          * wpa_supplicant takes care of picking up the best AP and hinting us, so all
          * we have to do - is to interpret these hints correctly.
          */
-	else if (sme->channel_hint)
+	else if (sme->channel_hint) {
+    ath6kl_info("Frequency hint is available: %hu\n", sme->channel_hint->center_freq);
 		vif->ch_hint = sme->channel_hint->center_freq;
+  }
 #endif /* AIRTAME_WLAN */
 
 	memset(vif->req_bssid, 0, sizeof(vif->req_bssid));
 	if (sme->bssid && !is_broadcast_ether_addr(sme->bssid))
 		memcpy(vif->req_bssid, sme->bssid, sizeof(vif->req_bssid));
+
+#ifdef AIRTAME_WLAN
+  if (sme->bssid_hint) {
+    ath6kl_info("BSSID hint is available: %pM\n", sme->bssid_hint);
+    memcpy(vif->req_bssid, sme->bssid_hint, ETH_ALEN);
+  }
+#endif /* AIRTAME_WLAN */
 
 	ath6kl_set_wpa_version(vif, sme->crypto.wpa_versions);
 
