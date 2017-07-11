@@ -1347,7 +1347,7 @@ static int ath6kl_wmi_error_event_rx(struct wmi *wmi, u8 *datap, int len)
 		break;
 	}
 
-	ath6kl_dbg(ATH6KL_DBG_WMI, "programming error, cmd=%d %s\n",
+	ath6kl_err("programming error, cmd=%d %s\n",
 		   ev->cmd_id, type);
 
 	return 0;
