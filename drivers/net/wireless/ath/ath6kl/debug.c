@@ -1289,6 +1289,88 @@ static const struct file_operations fops_roam_mode = {
 	.llseek = default_llseek,
 };
 
+static ssize_t ath6kl_host_bias_write(struct file *file,
+                                      const char __user *user_buf, size_t count,
+                                      loff_t *ppos) {
+        struct ath6kl *ar = file->private_data;
+        struct bss_bias_info *bias_info = NULL;
+        struct bss_bias *bss_bias = NULL;
+        char *buffer = NULL;
+        char *buffptr = NULL;
+        char *host = NULL;
+        size_t index = 0;
+        size_t bss_cnt = 0;
+        size_t info_len = 0;
+        int ret = 0;
+
+        (void)ppos;
+
+        if (!ar) {
+                return -EFAULT;
+        }
+
+        buffer = vmalloc(count);
+        if (!buffer) {
+                return -ENOMEM;
+        }
+
+        if (0 != copy_from_user(buffer, user_buf, count)) {
+                vfree(buffptr);
+                return -EFAULT;
+        }
+
+        for (index = count - 1; index >= 0 && buffer[index] == '\n'; index--);
+        buffer[index + 1] = '\0';
+
+        for (index = 0; buffer[index] != '\0'; index++) {
+                if (';' == buffer[index]) {
+                        bss_cnt++;
+                }
+        }
+
+        info_len = sizeof(*bias_info) + sizeof(*bss_bias) * ((bss_cnt)? bss_cnt : 1);
+        bias_info = kmalloc(info_len, GFP_KERNEL);
+        if (!bias_info) {
+                vfree(buffptr);
+                return -ENOMEM;
+        }
+
+        ath6kl_warn("%s: Allocate %u for biases\n", __func__, info_len);
+
+        bss_bias = bias_info->bss_bias;
+        buffptr = buffer;
+        while ((host = strsep(&buffptr, ";"))) {
+                char *mac = strsep(&host, ",");
+                char *bias = strsep(&host, ",");
+
+                if (mac && bias) {
+                        ath6kl_warn("%s: Host bias=> %s, %s\n", __func__, mac, bias);
+                        mac_pton(mac, bss_bias->bssid);
+                        (void)kstrtos8(bias, 10, &bss_bias->bias);
+                        bss_bias++;
+                }
+        }
+
+        bias_info->num_bss = bss_cnt;
+        vfree(buffer);
+
+        print_hex_dump(KERN_INFO, " ", DUMP_PREFIX_ADDRESS, 12, 1, bias_info, info_len, false);
+        ret = ath6kl_wmi_set_host_bias_cmd(ar->wmi, bias_info);
+        kfree(bias_info);
+
+        if (ret)
+                return ret;
+
+        return count;
+}
+
+static const struct file_operations fops_host_bias = {
+    .write = ath6kl_host_bias_write,
+    .open = simple_open,
+    .owner = THIS_MODULE,
+    .llseek = default_llseek,
+};
+
 void ath6kl_debug_set_keepalive(struct ath6kl *ar, u8 keepalive)
 {
 	ar->debug.keepalive = keepalive;
@@ -1828,6 +1910,9 @@ int ath6kl_debug_init_fs(struct ath6kl *ar)
 
 	debugfs_create_file("roam_mode", S_IWUSR, ar->debugfs_phy, ar,
 			    &fops_roam_mode);
+
+  debugfs_create_file("roam_host_bias", S_IWUSR, ar->debugfs_phy, ar,
+                      &fops_host_bias);
 
 	debugfs_create_file("keepalive", S_IRUSR | S_IWUSR, ar->debugfs_phy, ar,
 			    &fops_keepalive);
