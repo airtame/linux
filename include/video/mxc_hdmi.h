@@ -580,8 +580,9 @@ enum {
 	HDMI_IH_MUTE_PHY_STAT0_TX_PHY_LOCK = 0x2,
 	HDMI_IH_MUTE_PHY_STAT0_HPD = 0x1,
 
-/* IH and IH_MUTE convenience macro RX_SENSE | HPD*/
-	HDMI_DVI_IH_STAT = 0x3D,
+/* IH and IH_MUTE convenience macro - corresponds to HPD
+ * NOTE: See HDMI_DVI_STAT. */
+	HDMI_DVI_IH_STAT = 0x1,
 
 
 /* IH_AHBDMAAUD_STAT0 field values */
@@ -879,8 +880,11 @@ enum {
 	HDMI_PHY_HPD = 0x02,
 	HDMI_PHY_TX_PHY_LOCK = 0x01,
 
-/* HDMI STAT convenience RX_SENSE | HPD */
-	HDMI_DVI_STAT = 0xF2,
+/* HDMI STAT convenience - corresponds to HPD
+ * NOTE: This used to be RXSENSE{0-3} | HPD = 0xF2, to compensate for buggy HPD
+ * in i.MX hardware. This was borrowed code, and resulted in multiple spurious
+ * PLUGIN interrupts. We should only use HPD (0x02). */
+	HDMI_DVI_STAT = 0x02,
 
 /* PHY_I2CM_SLAVE_ADDR field values */
 	HDMI_PHY_I2CM_SLAVE_ADDR_PHY_GEN2 = 0x69,
