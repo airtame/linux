@@ -27,6 +27,127 @@
  * published by the Free Software Foundation.
  */
 
+/*
+ * Additional, Airtame-specific documentation follows...
+ *
+ * HDMI Hotplug Detect (HPD)
+ * -------------------------
+ * Last updated: 2017-11-06
+ * Author: Alvin Šipraga <alvin@airtame.com>
+ *
+ *
+ *   -> This section discusses how they are detected within mxc_hdmi. In HDMI
+ *   jargon, such an event is called a "hotplug" event.
+ *
+ *   The HDMI specification describes hotplug detection as follows. There is a pin
+ *   on the HDMI adapter named HPD. The source should measure the voltage between
+ *   HPD and the ground pin GND to get the hotplug signal. When the signal is high,
+ *   the source is connected to a sink. When the signal is low, the source is not.
+ *   Hotplug detection is therefore edge triggered:
+ *
+ *     + 5V           _________________________________         ______________
+ *                   |                                 |       |
+ *        -          |                                 |       |
+ *           ________|                                 |_______|
+ *       0V
+ *
+ *    state: 0       1                                 0       1
+ *
+ *                     change in state => hotplug event
+ *
+ *   The HDMI spec says that when we get an HPD rising edge, the sink's (E-)EDID is
+ *   ready for reading. The driver acts on this assumption.
+ *
+ *   How mxc_hdmi detects hotplug events
+ *   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ *   Consider the function mxc_hdmi_hotplug() in `mxc_hdmi.c`. This is the driver's
+ *   interrupt handler. It does some other stuff beyond the scope of this section,
+ *   but all we care about is what makes it schedule the hotplug worker call
+ *   hotplug_worker(). The driver reads the _interrupt status register_
+ *   `HDMI_IH_PHY_STAT0` and tests if any of the high bits of `HDMI_DVI_IH_STAT`
+ *   are present. This register looks like this:
+ *
+ *     bit    7      6    5    4    3    2        1        0
+ *     desc. [reserved]  [  RX_SENSE{3-0} ]  TX_PHY_LOCK  HPD
+ *
+ *   A high bit in `HDMI_DVI_IH_STAT` says that this bit indicates a hotplug
+ *   event when high in `HDMI_IH_PHY_STAT0`. So if there is a hotplug event, we
+ *   mute the interrupts and schedule hotplug_worker() to do the heavy lifting.
+ *
+ *   The hotplug worker reads the _RX_SENSE, PLL lock, and HPD status register_
+ *   `HDMI_PHY_STAT0`. This register looks like this:
+ *
+ *     bit    7    6    5    4    3      2    1        0
+ *     desc. [  RX_SENSE{3-0} ]  [reserved]  HPD  TX_PHY_LOCK
+ *
+ *   This register is tested against `HDMI_DVI_STAT` in a way analogous to above,
+ *   to determine whether the cable is plugged in or out. If any of the bits
+ *   specified in `HDMI_DVI_STAT` are high in the status register `HDMI_PHY_STAT0`,
+ *   then the hardware is telling us that the cable is plugged in.
+ *
+ *   What happens in either case is routine, so we skip that. What matters is what
+ *   we do with the register `HDMI_PHY_POL0`, because this determines when the next
+ *   interrupt will be raised. `HDMI_PHY_POL0` is the _RX_SENSE, PLL lock, and HPD
+ *   polarity register_, and it has the same layout as `HDMI_PHY_STAT0`. The HPD
+ *   interrupt is edge triggered and this register controls the polarity of the
+ *   edge trigger. For each interrupt:
+ *
+ *     bit high (1) => "active high" to capture plugin rising edge
+ *     bit low  (0) => "active low" to capture plugout falling edge
+ *
+ *   So when we get a HPD interrupt (which was already determined in
+ *   mxc_hdmi_hotplug(), and can therefore be assumed in hotplug_worker()), we flip
+ *   the corresponding bit in `HDMI_PHY_POL0`:
+ *
+ *     hdmi_writeb((HDMI_DVI_STAT & ~hdmi_phy_stat0), HDMI_PHY_POL0);
+ *
+ *   This ensures that the next interrupt will be triggered by a falling edge on
+ *   plugin (resp. rising edge on plugout).
+ *
+ *   This might mess with other flags in the register that aren't high in
+ *   `HDMI_DVI_STAT` (and I have reservations about that...), but if you check out
+ *   mxc_hdmi_disp_init() and mxc_hdmi_fb_registered(), you'll see that only the
+ *   hotplug interrupts are used. See all lines involving `HDMI_DVI_IH_STAT` and
+ *   `HDMI_DVI_STAT`.
+ *
+ *
+ *   Which interrupts should mxc_hdmi use to detect hotplug events?
+ *   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ *   According to the HDMI spec, NXP manual, and so on, we should only use HPD.
+ *   That is the purpose of the HPD bit in the registers described above. This
+ *   means that:
+ *     - HDMI_DVI_IH_STAT = 0x01
+ *     - HDMI_DVI_STAT    = 0x02
+ *
+ *   Previously (until commit 70ead8149942), our mxc_hdmi driver also uses the
+ *   RX_SENSE{0-3} interrupts. So the situation was rather:
+ *     - HDMI_DVI_IH_STAT = 0x3D
+ *     - HDMI_DVI_STAT    = 0xF2
+ *
+ *   The driver was like this because our initial kernel was modified by a third
+ *   party. It seems like the third party had an issue with their hardware that
+ *   meant that on DVI displays, the HPD signal (voltage between HPD and GND pins,
+ *   remember) would not go high. Browsing the web for this issue, you'll find the
+ *   following page: https://boundarydevices.com/dvi-support-on-i-mx6-boards/.
+ *   They describe an issue where their hardware had some voltage dividing
+ *   resistors on the HPD signal in order to protect the CPU from 5V.
+ *   Electronically this makes sense, but it seems like it forced them to make use
+ *   of this RX_SENSE interrupts as a result.
+ *
+ *   So do we need to do the same? Looking at the PCB schematics of the Airtame
+ *   device, you'll find that the HDMI pins are routed through an IC called
+ *   IP4791CZ12 (IC7 on the sheet). This IC protects the i.MX6Q from any voltage
+ *   surge, and it can be assumed that the signals are compatible. Additionally,
+ *   making the changes to `HDMI_DVI{_IH}_STAT` to reflect the HDMI spec, we are
+ *   still able to detect the HPD signal and read the HPD interrupt as intended.
+ *   That goes for both HDMI and DVI displays.
+ *
+ *   Since the aforementioned commit, we (correctly) use only the HPD signal,
+ *   and NOT the RX_SENSE signals.
+ */
+
 #define DEBUG
 #include <linux/module.h>
 #include <linux/kernel.h>
