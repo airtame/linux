@@ -28,4 +28,11 @@ config MX6_VPU_352M
 	 adjust dynamic, and CPU lowest setpoint will be 352Mhz.
 	 This config is used for special VPU use case.
 
+config AIRTAME_MXC_VPU_PREALLOCATE
+	bool "Enable dma preallocation of 64M"
+	depends on MXC_VPU
+	default n
+	help
+	 Enable preallocation of 64MB of dma memory to avoid memory fragmentation
+
 endmenu
