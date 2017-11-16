@@ -78,6 +78,8 @@
 #define pgprot_noncachedxn(prot) \
 	__pgprot_modify(prot, L_PTE_MT_MASK, L_PTE_MT_UNCACHED | L_PTE_XN)
 
+#define PREALLOC_MEM_SIZE (PAGE_SIZE * 16<<10) //64MB
+
 struct vpu_priv {
 	struct fasync_struct *async_queue;
 	struct work_struct work;
@@ -94,6 +96,11 @@ struct memalloc_record {
 struct iram_setting {
 	u32 start;
 	u32 end;
+};
+
+struct prealloc_record {
+	struct vpu_mem_desc prealloc_mem;
+	const struct file *filp;
 };
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
@@ -114,6 +121,8 @@ static struct vpu_mem_desc pic_para_mem = { 0 };
 static struct vpu_mem_desc user_data_mem = { 0 };
 static struct vpu_mem_desc share_mem = { 0 };
 static struct vpu_mem_desc vshare_mem = { 0 };
+static struct prealloc_record prealloc_rec = { 0 };
+static atomic_t pool_users = ATOMIC_INIT(0);
 
 static void __iomem *vpu_base;
 static int vpu_ipi_irq;
@@ -292,6 +301,54 @@ static int vpu_free_buffers(void)
 	return 0;
 }
 
+/*!
+ * Private function to allocate pool of
+ * dma buffer
+ */
+static int vpu_alloc_dma_buffer_pool(void)
+{
+	int rc = 0;
+	prealloc_rec.prealloc_mem.size = PREALLOC_MEM_SIZE;
+	rc = vpu_alloc_dma_buffer(&prealloc_rec.prealloc_mem);
+	if (rc == -1) {
+		return rc;
+	}
+	dev_dbg(vpu_dev, "Allocation of DMA buffer pool complete!\n");
+	return rc;
+}
+
+static int vpu_dealloc_dma_buffer_pool(void)
+{
+	dev_dbg(vpu_dev, "Deallocating DMA buffer pool\n");
+	if (prealloc_rec.prealloc_mem.cpu_addr != 0) {
+		vpu_free_dma_buffer(&prealloc_rec.prealloc_mem);
+		dev_dbg(vpu_dev, "[FREE] freed paddr=0x%08X\n", prealloc_rec.prealloc_mem.phy_addr);
+	}
+	return 0;
+}
+
+/*!
+ * Private function to atomically reserve the memory pool
+ */
+static bool vpu_acquire_dma_buffer_from_pool(void)
+{
+	if (atomic_cmpxchg(&pool_users, 0, 1) == 0) {
+		return true;
+	}
+	return false;
+}
+
+/*!
+ * Private function to atomically release memory pool
+ */
+static bool vpu_release_dma_buffer_to_pool(void)
+{
+	if (atomic_cmpxchg(&pool_users, 1, 0) == 1) {
+		return true;
+	}
+	return false;
+}
+
 static inline void vpu_worker_callback(struct work_struct *w)
 {
 	struct vpu_priv *dev = container_of(w, struct vpu_priv,
@@ -408,17 +465,52 @@ static long vpu_ioctl(struct file *filp, u_int cmd,
 	int ret = 0;
 
 	switch (cmd) {
+	case VPU_IOC_ACQUIRE_PHYMEM_POOL:
+		{
+			/*
+			 * If the function returns false that means that the preallocated memory resource
+			 * busy.
+			 */
+			if (!vpu_acquire_dma_buffer_from_pool()) {
+				return -EBUSY;
+			}
+			ret = copy_to_user((void __user *)arg, &(prealloc_rec.prealloc_mem),
+					sizeof(struct vpu_mem_desc));
+			// If copying to user fails we need to release the acquired memory resource
+			if (ret) {
+				vpu_release_dma_buffer_to_pool();
+				return -EFAULT;
+			}
+			prealloc_rec.filp = filp;
+			break;
+		}
+	case VPU_IOC_RELEASE_PHYMEM_POOL:
+		{
+			/*
+			 * If we get a release call from a file descriptor other than the one who acquired the
+			 * memory resource then return access violation error code.
+			 */
+			if (prealloc_rec.filp != filp) {
+				return -EACCES;
+			}
+			/*
+			 * If we can't release that memory resource, return the error code.
+			 */
+			if (!vpu_release_dma_buffer_to_pool()) {
+				ret = -EFAULT;
+			}
+			break;
+		}
 	case VPU_IOC_PHYMEM_ALLOC:
 		{
-			struct memalloc_record *rec;
-
+			struct memalloc_record *rec, *rec_dbg, *n;
 			rec = kzalloc(sizeof(*rec), GFP_KERNEL);
 			if (!rec)
 				return -ENOMEM;
 
 			ret = copy_from_user(&(rec->mem),
-					     (struct vpu_mem_desc *)arg,
-					     sizeof(struct vpu_mem_desc));
+								(struct vpu_mem_desc *)arg,
+								sizeof(struct vpu_mem_desc));
 			if (ret) {
 				kfree(rec);
 				return -EFAULT;
@@ -435,15 +527,29 @@ static long vpu_ioctl(struct file *filp, u_int cmd,
 				break;
 			}
 			ret = copy_to_user((void __user *)arg, &(rec->mem),
-					   sizeof(struct vpu_mem_desc));
+							   sizeof(struct vpu_mem_desc));
 			if (ret) {
+				vpu_free_dma_buffer(&rec->mem);
 				kfree(rec);
 				ret = -EFAULT;
 				break;
 			}
 
 			mutex_lock(&vpu_data.lock);
+			/*
+			 * Print all the memory records that are on the list
+			 */
+			dev_dbg(vpu_dev, "\t[CPU_ADDR]\t[PHY_ADDR]\t[SIZE]\n");
+			list_for_each_entry_safe(rec_dbg, n, &head, list) {
+				dev_dbg(vpu_dev, "\t0x%08x\t0x%08x\t%u\n",
+						rec_dbg->mem.cpu_addr, rec_dbg->mem.phy_addr, rec_dbg->mem.size);
+			}
+			/*
+			 * Add the allocated record in the list and print it as well
+			 */
 			list_add(&rec->list, &head);
+			dev_dbg(vpu_dev, "\t->0x%08x\t0x%08x\t%u\n",
+					rec->mem.cpu_addr, rec->mem.phy_addr, rec->mem.size);
 			mutex_unlock(&vpu_data.lock);
 
 			break;
@@ -464,13 +570,22 @@ static long vpu_ioctl(struct file *filp, u_int cmd,
 			if ((void *)vpu_mem.cpu_addr != NULL)
 				vpu_free_dma_buffer(&vpu_mem);
 
+			/*
+			 * Traverse the list of memory records and print them
+			 * For the dma record to be removed, print it with an 'X' at the beginning
+			 * and remove it from the list
+			 */
 			mutex_lock(&vpu_data.lock);
 			list_for_each_entry_safe(rec, n, &head, list) {
 				if (rec->mem.cpu_addr == vpu_mem.cpu_addr) {
+					dev_dbg(vpu_dev, "X \t0x%08x\t0x%08x\t%u\n",
+							rec->mem.cpu_addr, rec->mem.phy_addr, rec->mem.size);
 					/* delete from list */
 					list_del(&rec->list);
 					kfree(rec);
-					break;
+				} else {
+					dev_dbg(vpu_dev, "\t0x%08x\t0x%08x\t%u\n",
+							rec->mem.cpu_addr, rec->mem.phy_addr, rec->mem.size);
 				}
 			}
 			mutex_unlock(&vpu_data.lock);
@@ -690,6 +805,10 @@ static int vpu_release(struct inode *inode, struct file *filp)
 	int i;
 	unsigned long timeout;
 
+	// Mark the preallocated resource as available in case it was acquired from the file descriptor
+	if (prealloc_rec.filp == filp)
+		vpu_release_dma_buffer_to_pool();
+
 	mutex_lock(&vpu_data.lock);
 
 	if (open_count > 0 && !(--open_count)) {
@@ -755,6 +874,7 @@ static int vpu_release(struct inode *inode, struct file *filp)
 		clk_disable(vpu_clk);
 		clk_unprepare(vpu_clk);
 
+		// TODO: Release allocated memory per file descriptor for all dma buffers
 		vpu_free_buffers();
 
 		/* Free shared memory when vpu device is idle */
@@ -1004,6 +1124,12 @@ static int vpu_dev_probe(struct platform_device *pdev)
 		goto err_out_class;
 	}
 #endif
+
+// Allocate dma memory pool here
+	err = vpu_alloc_dma_buffer_pool();
+	if (err) {
+		goto err_out_class;
+	}
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 	pm_runtime_enable(&pdev->dev);
@@ -1315,6 +1441,7 @@ static void __exit vpu_exit(void)
 		vpu_major = 0;
 	}
 
+	vpu_dealloc_dma_buffer_pool();
 	vpu_free_dma_buffer(&bitwork_mem);
 	vpu_free_dma_buffer(&pic_para_mem);
 	vpu_free_dma_buffer(&user_data_mem);
