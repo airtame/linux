@@ -78,6 +78,8 @@
 #define pgprot_noncachedxn(prot) \
 	__pgprot_modify(prot, L_PTE_MT_MASK, L_PTE_MT_UNCACHED | L_PTE_XN)
 
+#define SIZE_OF_MEM_CHUNK (PAGE_SIZE * 16<<10) //64MB
+
 struct vpu_priv {
 	struct fasync_struct *async_queue;
 	struct work_struct work;
@@ -89,6 +91,8 @@ struct vpu_priv {
 struct memalloc_record {
 	struct list_head list;
 	struct vpu_mem_desc mem;
+	bool is_preallocated;
+	bool is_busy;
 };
 
 struct iram_setting {
@@ -248,8 +252,8 @@ static int vpu_alloc_dma_buffer(struct vpu_mem_desc *mem)
 {
 	mem->cpu_addr = (unsigned long)
 	    dma_alloc_coherent(NULL, PAGE_ALIGN(mem->size),
-			       (dma_addr_t *) (&mem->phy_addr),
-			       GFP_DMA | GFP_KERNEL);
+						  (dma_addr_t *) (&mem->phy_addr),
+						  GFP_DMA | GFP_KERNEL);
 	dev_dbg(vpu_dev, "[ALLOC] mem alloc cpu_addr = 0x%x\n", mem->cpu_addr);
 	if ((void *)(mem->cpu_addr) == NULL) {
 		dev_err(vpu_dev, "Physical memory allocation error!\n");
@@ -264,7 +268,8 @@ static int vpu_alloc_dma_buffer(struct vpu_mem_desc *mem)
 static void vpu_free_dma_buffer(struct vpu_mem_desc *mem)
 {
 	if (mem->cpu_addr != 0) {
-		dma_free_coherent(0, PAGE_ALIGN(mem->size),
+		dma_free_coherent(0, PAGE_ALIGN(
+			mem->size),
 				  (void *)mem->cpu_addr, mem->phy_addr);
 	}
 }
@@ -280,7 +285,7 @@ static int vpu_free_buffers(void)
 
 	list_for_each_entry_safe(rec, n, &head, list) {
 		mem = rec->mem;
-		if (mem.cpu_addr != 0) {
+		if (mem.cpu_addr != 0 && !rec->is_preallocated) {
 			vpu_free_dma_buffer(&mem);
 			dev_dbg(vpu_dev, "[FREE] freed paddr=0x%08X\n", mem.phy_addr);
 			/* delete from list */
@@ -290,6 +295,91 @@ static int vpu_free_buffers(void)
 	}
 
 	return 0;
+}
+
+/*!
+ * Private function to allocate pool of
+ * dma buffers
+ */
+static int vpu_alloc_dma_buffer_pool(void)
+{
+	int rc = 0;
+	struct memalloc_record *rec;
+	rec = kzalloc(sizeof(*rec), GFP_KERNEL);
+	if (!rec) {
+		rc = -ENOMEM;
+		return rc;
+	}
+	rec->mem.size = SIZE_OF_MEM_CHUNK;
+	rc = vpu_alloc_dma_buffer(&rec->mem);
+	if (rc == -1) {
+		kfree(rec);
+		return rc;
+	}
+	rec->is_preallocated = true;
+	list_add(&rec->list, &head);
+	dev_dbg(vpu_dev, "Allocation of DMA buffer pool complete!\n");
+	return rc;
+}
+
+static int vpu_dealloc_dma_buffer_pool(void)
+{
+	struct memalloc_record *rec, *n;
+	struct vpu_mem_desc mem;
+
+	dev_dbg(vpu_dev, "Deallocating DMA buffer pool\n");
+	list_for_each_entry_safe(rec, n, &head, list) {
+		mem = rec->mem;
+		if (mem.cpu_addr != 0 && rec->is_preallocated) {
+			vpu_free_dma_buffer(&mem);
+			dev_dbg(vpu_dev, "[FREE] freed paddr=0x%08X\n", mem.phy_addr);
+			/* delete from list */
+			list_del(&rec->list);
+			kfree(rec);
+			break;
+		}
+	}
+
+	return 0;
+}
+
+/*!
+ * Private function to obtain the first non busy
+ * memory record from the pool of dma buffers and
+ * mark that record as busy.
+ * Remember to lock/unlock mutex when using this function
+ */
+static struct memalloc_record *vpu_acquire_dma_buffer_from_pool(void)
+{
+	struct memalloc_record *rec, *n, *res = NULL;
+	list_for_each_entry_safe(rec, n, &head, list) {
+		if (rec->is_preallocated && !rec->is_busy) {
+			rec->is_busy = true;
+			res = rec;
+			break;
+		}
+	}
+	return res;
+}
+
+/*!
+ * Private function to release memory record and mark it
+ * as available. If such a record does not exist it means
+ * that it was allocated outside the pool.
+ * Remember to lock/unlock mutex when using this function
+ */
+static bool vpu_release_dma_buffer_to_pool(void)
+{
+	struct memalloc_record *rec, *n;
+	bool rc = false;
+	list_for_each_entry_safe(rec, n, &head, list) {
+		if (rec->mem.cpu_addr != 0 && rec->is_preallocated) {
+			rec->is_busy = false;
+			rc = true;
+			break;
+		}
+	}
+	return rc;
 }
 
 static inline void vpu_worker_callback(struct work_struct *w)
@@ -408,17 +498,56 @@ static long vpu_ioctl(struct file *filp, u_int cmd,
 	int ret = 0;
 
 	switch (cmd) {
+	case VPU_IOC_ACQUIRE_PHYMEM_POOL:
+		{
+			struct memalloc_record *rec = NULL;
+			mutex_lock(&vpu_data.lock);
+			rec = vpu_acquire_dma_buffer_from_pool();
+			mutex_unlock(&vpu_data.lock);
+			/*
+			 * If a NULL pointer is returned then that means that the preallocated memory resource
+			 * busy.
+			 */
+			if (!rec) {
+				return -EBUSY;
+			}
+			ret = copy_to_user((void __user *)arg, &(rec->mem),
+					sizeof(struct vpu_mem_desc));
+			// If copying to user fails we need to release the acquired memory resource
+			if (ret) {
+				mutex_lock(&vpu_data.lock);
+				vpu_release_dma_buffer_to_pool();
+				mutex_unlock(&vpu_data.lock);
+				return -EFAULT;
+			}
+			break;
+		}
+	case VPU_IOC_RELEASE_PHYMEM_POOL:
+		{
+			/*
+			 * If we can't release that memory to the pool, that means that the address has been
+			 * corrupted.
+			 */
+			mutex_lock(&vpu_data.lock);
+			if (!vpu_release_dma_buffer_to_pool()) {
+				ret = -EFAULT;
+			}
+			mutex_unlock(&vpu_data.lock);
+			break;
+		}
 	case VPU_IOC_PHYMEM_ALLOC:
 		{
-			struct memalloc_record *rec;
-
+			struct memalloc_record *rec, *rec_dbg, *n;
 			rec = kzalloc(sizeof(*rec), GFP_KERNEL);
 			if (!rec)
 				return -ENOMEM;
 
+			// All dma allocations outside the pool will be set as busy by default
+			rec->is_busy = true;
+
 			ret = copy_from_user(&(rec->mem),
-					     (struct vpu_mem_desc *)arg,
-					     sizeof(struct vpu_mem_desc));
+								(struct vpu_mem_desc *)arg,
+								sizeof(struct vpu_mem_desc));
 			if (ret) {
 				kfree(rec);
 				return -EFAULT;
@@ -435,15 +564,33 @@ static long vpu_ioctl(struct file *filp, u_int cmd,
 				break;
 			}
 			ret = copy_to_user((void __user *)arg, &(rec->mem),
-					   sizeof(struct vpu_mem_desc));
+							   sizeof(struct vpu_mem_desc));
 			if (ret) {
+				vpu_free_dma_buffer(&rec->mem);
 				kfree(rec);
 				ret = -EFAULT;
 				break;
 			}
 
 			mutex_lock(&vpu_data.lock);
+			/*
+			 * Print all the memory records that are on the list
+			 */
+			dev_dbg(vpu_dev, "\t[TYPE]\t[STATUS]\t[CPU_ADDR]\t[PHY_ADDR]\t[SIZE]\n");
+			list_for_each_entry_safe(rec_dbg, n, &head, list) {
+				dev_dbg(vpu_dev, "\t%s\t%s\t0x%08x\t0x%08x\t%u\n",
+						rec_dbg->is_preallocated ? "STATIC" : "DYNAMIC",
+						rec_dbg->is_busy ? "RESERVED" : "AVAILABLE", rec_dbg->mem.cpu_addr,
+						rec_dbg->mem.phy_addr, rec_dbg->mem.size);
+			}
+			/*
+			 * Add the allocated record in the list and print it as well
+			 */
 			list_add(&rec->list, &head);
+			dev_dbg(vpu_dev, "\t-> %s\t%s\t0x%08x\t0x%08x\t%u\n",
+					rec->is_preallocated ? "STATIC" : "DYNAMIC",
+					rec->is_busy ? "RESERVED" : "AVAILABLE", rec->mem.cpu_addr,
+					rec->mem.phy_addr, rec->mem.size);
 			mutex_unlock(&vpu_data.lock);
 
 			break;
@@ -464,13 +611,26 @@ static long vpu_ioctl(struct file *filp, u_int cmd,
 			if ((void *)vpu_mem.cpu_addr != NULL)
 				vpu_free_dma_buffer(&vpu_mem);
 
+			/*
+			 * Traverse the list of memory records and print them
+			 * For the dma record to be removed, print it with an 'X' at the beginning
+			 * and remove it from the list
+			 */
 			mutex_lock(&vpu_data.lock);
 			list_for_each_entry_safe(rec, n, &head, list) {
 				if (rec->mem.cpu_addr == vpu_mem.cpu_addr) {
+					dev_dbg(vpu_dev, "X %s\t%s\t0x%08x\t0x%08x\t%u\n",
+							rec->is_preallocated ? "STATIC" : "DYNAMIC",
+							rec->is_busy ? "RESERVED" : "AVAILABLE", rec->mem.cpu_addr,
+							rec->mem.phy_addr, rec->mem.size);
 					/* delete from list */
 					list_del(&rec->list);
 					kfree(rec);
-					break;
+				} else {
+					dev_dbg(vpu_dev, "%s\t%s\t0x%08x\t0x%08x\t%u\n",
+							rec->is_preallocated ? "STATIC" : "DYNAMIC",
+							rec->is_busy ? "RESERVED" : "AVAILABLE", rec->mem.cpu_addr,
+							rec->mem.phy_addr, rec->mem.size);
 				}
 			}
 			mutex_unlock(&vpu_data.lock);
@@ -755,6 +915,8 @@ static int vpu_release(struct inode *inode, struct file *filp)
 		clk_disable(vpu_clk);
 		clk_unprepare(vpu_clk);
 
+		// Mark the preallocated resource as available in case is was acquired
+		vpu_release_dma_buffer_to_pool();
 		vpu_free_buffers();
 
 		/* Free shared memory when vpu device is idle */
@@ -1004,6 +1166,12 @@ static int vpu_dev_probe(struct platform_device *pdev)
 		goto err_out_class;
 	}
 #endif
+
+// Allocate dma memory pool here
+	err = vpu_alloc_dma_buffer_pool();
+	if (err) {
+		goto err_out_class;
+	}
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 	pm_runtime_enable(&pdev->dev);
@@ -1315,6 +1483,7 @@ static void __exit vpu_exit(void)
 		vpu_major = 0;
 	}
 
+	vpu_dealloc_dma_buffer_pool();
 	vpu_free_dma_buffer(&bitwork_mem);
 	vpu_free_dma_buffer(&pic_para_mem);
 	vpu_free_dma_buffer(&user_data_mem);
