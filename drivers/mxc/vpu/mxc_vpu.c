@@ -542,6 +542,9 @@ static long vpu_ioctl(struct file *filp, u_int cmd,
 			ret = copy_to_user((void __user *)arg, &(rec->mem),
 							   sizeof(struct vpu_mem_desc));
 			if (ret) {
+#ifdef AIRTAME
+				vpu_free_dma_buffer(&rec->mem);
+#endif
 				kfree(rec);
 				ret = -EFAULT;
 				break;

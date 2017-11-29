@@ -34,5 +34,12 @@ config AIRTAME_MXC_VPU_PREALLOCATE
 	default n
 	help
 	 Enable preallocation of 64MB of dma memory to avoid memory fragmentation
+	
+config AIRTAME
+	bool "Enable airtame specific code"
+	depends on MXC_VPU
+	default n
+	help
+	 For now when this option is enabled it fixes a memory leak bug
 
 endmenu
