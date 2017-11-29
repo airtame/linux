@@ -2124,6 +2124,7 @@ CONFIG_MXC_VPU=y
 # CONFIG_MXC_VPU_DEBUG is not set
 # CONFIG_MX6_VPU_352M is not set
 CONFIG_AIRTAME_MXC_VPU_PREALLOCATE=y
+CONFIG_AIRTAME=y
 
 #
 # MXC HDMI CEC (Consumer Electronics Control) support
