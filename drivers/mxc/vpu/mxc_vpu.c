@@ -542,6 +542,12 @@ static long vpu_ioctl(struct file *filp, u_int cmd,
 			ret = copy_to_user((void __user *)arg, &(rec->mem),
 							   sizeof(struct vpu_mem_desc));
 			if (ret) {
+#ifdef AIRTAME_MXC_VPU_PREALLOCATE
+				/* The vpu_free_dma_buffer is not related to the memory preallocation but it is
+				 * a memory leak fix. Nevertheless, it should be inside ifdef as it is our code.
+				 */
+				vpu_free_dma_buffer(&rec->mem);
+#endif
 				kfree(rec);
 				ret = -EFAULT;
 				break;
