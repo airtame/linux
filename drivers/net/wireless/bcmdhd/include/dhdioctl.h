@@ -5,7 +5,9 @@
  *
  * Definitions subject to change without notice.
  *
- * Copyright (C) 1999-2016, Broadcom Corporation
+ * Portions of this code are copyright (c) 2017 Cypress Semiconductor Corporation
+ * 
+ * Copyright (C) 1999-2017, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -25,7 +27,10 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhdioctl.h 454792 2014-02-11 20:40:19Z $
+ *
+ * <<Broadcom-WL-IPTag/Open:>>
+ *
+ * $Id: dhdioctl.h 585723 2015-09-11 06:26:37Z $
  */
 
 #ifndef _dhdioctl_h_
@@ -93,6 +98,10 @@ enum {
 #define DHD_NOCHECKDIED_VAL		0x20000 /* UTF WAR */
 #define DHD_WL_VAL2		0x40000
 #define DHD_PNO_VAL		0x80000
+#define DHD_MSGTRACE_VAL	0x100000
+#define DHD_FWLOG_VAL		0x400000
+#define DHD_RTT_VAL		0x200000
+#define DHD_IOV_INFO_VAL	0x800000
 
 #ifdef SDTEST
 /* For pktgen iovar */

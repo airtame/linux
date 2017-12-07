@@ -8,24 +8,17 @@ config BCMDHD
 	  unsure.
 
 config BCMDHD_SDIO
-	tristate "SDIO bus interface support"
-	depends on BCMDHD && MMC
+	bool "SDIO bus interface support"
+	depends on BCMDHD && MMC && !BCMDHD_PCIE
 
 config BCMDHD_PCIE
 	bool "PCIe bus interface support"
 	depends on BCMDHD && PCI && !BCMDHD_SDIO
 
-config BCM4339
-	tristate "BCM4339 support"
+config BCM4359
+	bool "BCM4359 support"
 	depends on BCMDHD
-
-config BCM43340
-	tristate "BCM43340 support"
-	depends on BCMDHD
-
-config BCM4354
-	tristate "BCM4354 support"
-	depends on BCMDHD
+	default y
 
 config BCMDHD_FW_PATH
 	depends on BCMDHD
@@ -41,14 +34,6 @@ config BCMDHD_NVRAM_PATH
 	---help---
 	  Path to the calibration file.
 
-config BCMDHD_WEXT
-	bool "Enable WEXT support"
-	depends on BCMDHD && CFG80211 = n
-	select WIRELESS_EXT
-	select WEXT_PRIV
-	help
-	  Enables WEXT support
-
 config DHD_USE_STATIC_BUF
 	bool "Enable memory preallocation"
 	depends on BCMDHD
@@ -62,3 +47,10 @@ config DHD_USE_SCHED_SCAN
 	default n
 	---help---
 	  Use CFG80211 sched scan
+
+config DHD_SET_RANDOM_MAC_VAL
+hex "Vendor OUI"
+depends on BCMDHD
+default 0x001A11
+ ---help---
+Set vendor OUI for SoftAP
