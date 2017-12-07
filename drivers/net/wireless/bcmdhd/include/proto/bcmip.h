@@ -1,5 +1,9 @@
 /*
- * Copyright (C) 1999-2016, Broadcom Corporation
+ * Fundamental constants relating to IP Protocol
+ *
+ * Portions of this code are copyright (c) 2017 Cypress Semiconductor Corporation
+ * 
+ * Copyright (C) 1999-2017, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -19,9 +23,10 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * Fundamental constants relating to IP Protocol
  *
- * $Id: bcmip.h 457888 2014-02-25 03:34:39Z $
+ * <<Broadcom-WL-IPTag/Open:>>
+ *
+ * $Id: bcmip.h 594480 2015-10-22 03:14:33Z $
  */
 
 #ifndef _bcmip_h_
@@ -49,7 +54,8 @@
 #define IP_PROT_IGMP		0x2	/* IGMP protocol */
 #define IP_PROT_TCP		0x6	/* TCP protocol */
 #define IP_PROT_UDP		0x11	/* UDP protocol type */
-#define IP_PROT_ICMP6		0x3a	/* ICMPv6 protocol type */
+#define IP_PROT_GRE		0x2f	/* GRE protocol type */
+#define IP_PROT_ICMP6           0x3a    /* ICMPv6 protocol type */
 
 /* IPV4 field offsets */
 #define IPV4_VER_HL_OFFSET      0       /* version and ihl byte offset */
@@ -89,6 +95,15 @@
 #define IPV4_TOS_LOWDELAY	0x10	/* Lowest delay requested */
 #define IPV4_TOS_THROUGHPUT	0x8	/* Best throughput requested */
 #define IPV4_TOS_RELIABILITY	0x4	/* Most reliable delivery requested */
+
+#define IPV4_TOS_ROUTINE        0
+#define IPV4_TOS_PRIORITY       1
+#define IPV4_TOS_IMMEDIATE      2
+#define IPV4_TOS_FLASH          3
+#define IPV4_TOS_FLASHOVERRIDE  4
+#define IPV4_TOS_CRITICAL       5
+#define IPV4_TOS_INETWORK_CTRL  6
+#define IPV4_TOS_NETWORK_CTRL   7
 
 #define IPV4_PROT(ipv4_body)	(((uint8 *)(ipv4_body))[IPV4_PROT_OFFSET])
 
@@ -151,6 +166,11 @@ BWL_PRE_PACKED_STRUCT struct ipv4_hdr {
 	 IP_VER(ip_body) == IP_VER_6 ? IPV6_TRAFFIC_CLASS(ip_body) : 0)
 
 #define IP_DSCP46(ip_body) (IP_TOS46(ip_body) >> IPV4_TOS_DSCP_SHIFT);
+
+/* IPV4 or IPV6 Protocol Classifier or 0 */
+#define IP_PROT46(ip_body) \
+	(IP_VER(ip_body) == IP_VER_4 ? IPV4_PROT(ip_body) : \
+	 IP_VER(ip_body) == IP_VER_6 ? IPV6_PROT(ip_body) : 0)
 
 /* IPV6 extension headers (options) */
 #define IPV6_EXTHDR_HOP		0

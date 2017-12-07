@@ -5,7 +5,9 @@
  * IEEE Std 802.1X-2001
  * IEEE 802.1X RADIUS Usage Guidelines
  *
- * Copyright (C) 1999-2016, Broadcom Corporation
+ * Portions of this code are copyright (c) 2017 Cypress Semiconductor Corporation
+ * 
+ * Copyright (C) 1999-2017, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -25,7 +27,10 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: eapol.h 526865 2015-01-15 07:44:19Z $
+ *
+ * <<Broadcom-WL-IPTag/Open:>>
+ *
+ * $Id: eapol.h 596466 2015-11-02 00:41:50Z $
  */
 
 #ifndef _eapol_h_
@@ -131,6 +136,7 @@ typedef BWL_PRE_PACKED_STRUCT struct {
 #define EAPOL_WPA_KEY_LEN 		95
 
 /* WPA/802.11i/WPA2 KEY KEY_INFO bits */
+#define WPA_KEY_DESC_OSEN	0x0
 #define WPA_KEY_DESC_V1		0x01
 #define WPA_KEY_DESC_V2		0x02
 #define WPA_KEY_DESC_V3		0x03

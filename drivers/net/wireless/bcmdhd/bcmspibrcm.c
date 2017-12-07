@@ -1,7 +1,9 @@
 /*
  * Broadcom BCMSDH to gSPI Protocol Conversion Layer
  *
- * Copyright (C) 1999-2016, Broadcom Corporation
+ * Portions of this code are copyright (c) 2017 Cypress Semiconductor Corporation
+ * 
+ * Copyright (C) 1999-2017, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -21,7 +23,10 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmspibrcm.c 662541 2016-10-28 03:22:57Z $
+ *
+ * <<Broadcom-WL-IPTag/Open:>>
+ *
+ * $Id: bcmspibrcm.c 662542 2016-10-28 03:26:10Z $
  */
 
 #define HSMODE
@@ -1287,8 +1292,14 @@ bcmspi_host_device_init_adapt(sdioh_info_t *sd)
 			OSL_DELAY(1000);
 		}
 
+#if defined(CHANGE_SPI_INTR_POLARITY_ACTIVE_HIGH)
+		/* Change to host controller intr-polarity of active-high */
+		wrregdata |= INTR_POLARITY;
+#else
 		/* Change to host controller intr-polarity of active-low */
 		wrregdata &= ~INTR_POLARITY;
+#endif /* CHANGE_SPI_INTR_POLARITY_ACTIVE_HIGH */
+
 		sd_trace(("(we are still in 16bit mode) 32bit Write LE reg-ctrl-data = 0x%x\n",
 		        wrregdata));
 		/* Change to 32bit mode */
