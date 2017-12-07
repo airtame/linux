@@ -34,6 +34,13 @@ config BCMDHD_NVRAM_PATH
 	---help---
 	  Path to the calibration file.
 
+config BCMDHD_CLM_PATH
+	depends on BCMDHD
+	string "NVRAM path"
+	default "/usr/lib/firmware/bcm/4359b1.clm_blob"
+	---help---
+	  Path to the calibration file.
+
 config DHD_USE_STATIC_BUF
 	bool "Enable memory preallocation"
 	depends on BCMDHD
