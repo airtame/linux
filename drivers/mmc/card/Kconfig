@@ -68,3 +68,8 @@ config MMC_TEST
 
 	  This driver is only of interest to those developing or
 	  testing a host driver. Most people should say N here.
+config RPMB_AIRTAME
+  bool "Reject read/write access to the RPMB partition"
+  help
+    If set to true, reject read/write access to the RPMB partition.
+    It should be only accessed through ioctls.
